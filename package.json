@@ -1,0 +1,25 @@
+{
+  "name": "calc-basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest -i",
+    "build": "webpack"
+  },
+  "author": "PneuJai",
+  "license": "ISC",
+  "devDependencies": {
+    "@swc/core": "^1.2.242",
+    "@swc/jest": "^0.2.22",
+    "@types/jest": "^28.1.7",
+    "jest": "^28.1.3",
+    "ts-loader": "^9.3.1",
+    "typescript": "^4.7.4",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "nerdamer": "^1.1.13"
+  }
+}
