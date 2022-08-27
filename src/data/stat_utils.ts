@@ -1,7 +1,8 @@
 import { NamedCalculation } from "../parsing/tokens";
+import { MathError } from "./errors";
 import { M } from "./math";
 import { Table } from "./table";
-import { Value } from "./value";
+import { Value, zero } from "./value";
 
 export enum Regression {
     SingleVar,
@@ -789,12 +790,40 @@ export namespace StatUtils {
         data.validateLines();
 
         let x!: Value;
+        const a = StatUtils.coefficientA(data);
+        const b = StatUtils.coefficientB(data);
 
         switch (data.regression) {
             case Regression.Linear: {
-                const a = StatUtils.coefficientA(data);
-                const b = StatUtils.coefficientB(data);
                 x = y.minus(a).div(b);
+                break;
+            }
+            case Regression.Quadratic: {
+                const c = StatUtils.coefficientR(data);
+
+                const Δ = b.pow(2).minus(c.times(4).times(a.minus(y)));
+                x = zero.minus(b).plus(Δ.root(2)).div(c.times(2));
+                break;
+            }
+            case Regression.Logarithmic: {
+                x = M.exp(y.minus(a).div(b));
+                break;
+            }
+            case Regression.eExponential: {
+                x = M.ln(y.div(a)).div(b);
+                break;
+            }
+            case Regression.abExponential: {
+                x = M.ln(y.div(a)).div(M.ln(b));
+                break;
+            }
+            case Regression.Power: {
+                x = M.exp(M.ln(y.div(a)).div(b));
+                break;
+            }
+            case Regression.Inverse: {
+                x = b.div(y.minus(a));
+                break;
             }
         }
 
@@ -805,16 +834,64 @@ export namespace StatUtils {
         data.validateLines();
 
         let y!: Value;
+        const a = StatUtils.coefficientA(data);
+        const b = StatUtils.coefficientB(data);
 
         switch (data.regression) {
             case Regression.Linear: {
-                const a = StatUtils.coefficientA(data);
-                const b = StatUtils.coefficientB(data);
                 y = a.plus(b.times(x));
+                break;
+            }
+            case Regression.Quadratic: {
+                const c = StatUtils.coefficientR(data);
+
+                y = a.plus(b.times(x)).plus(c.times(x.pow(2)));
+                break;
+            }
+            case Regression.Logarithmic: {
+                y = a.plus(b.times(M.ln(x)));
+                break;
+            }
+            case Regression.eExponential: {
+                y = a.times(M.exp(b.times(x)));
+                break;
+            }
+            case Regression.abExponential: {
+                y = a.times(b.pow(x));
+                break;
+            }
+            case Regression.Power: {
+                y = a.times(x.pow(b));
+                break;
+            }
+            case Regression.Inverse: {
+                y = a.plus(b.div(x));
+                break;
             }
         }
-
         return y;
+    }
+
+    export function estimatedX2(data: Table, y: Value) {
+        data.validateLines();
+
+        let x!: Value;2
+        const a = StatUtils.coefficientA(data);
+        const b = StatUtils.coefficientB(data);
+
+        switch (data.regression) {
+            case Regression.Quadratic: {
+                const c = StatUtils.coefficientR(data);
+
+                const Δ = b.pow(2).minus(c.times(4).times(a.minus(y)));
+                x = zero.minus(b).minus(Δ.root(2)).div(c.times(2));
+                break;
+            }
+            default:
+                throw new MathError(`Regression ${data.regression} not implemented`);
+        }
+
+        return x;
     }
 
     export function minX(data: Table) {

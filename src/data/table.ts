@@ -43,7 +43,7 @@ export abstract class Table {
     }
 
     setCache(name: NamedCalculation, value: Value) {
-        // this.calculationCache[name] = value;
+        this.calculationCache[name] = value;
         return value;
     }
 

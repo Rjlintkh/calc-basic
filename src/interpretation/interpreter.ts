@@ -245,6 +245,15 @@ export class Interpreter {
                 return ConversionUtils.toAngleUnit(arg, AngleUnit.Gra, this.ctx.getConfigProperty(ConfigProperty.AngleUnit));
             case "%":
                 return arg.div(100);
+            case Delimiters.EstimatedX:
+                if (!this.ctx.table) throw new MathError("No table defined");
+                return StatUtils.estimatedX(this.ctx.table, arg);
+            case Delimiters.EstimatedY:
+                if (!this.ctx.table) throw new MathError("No table defined");
+                return StatUtils.estimatedY(this.ctx.table, arg);
+            case Delimiters.EstimatedX2:
+                if (!this.ctx.table) throw new MathError("No table defined");
+                return StatUtils.estimatedX2(this.ctx.table, arg);
             case Operators.ExponentialOperator:
                 if (!arg.isInteger() || arg.text().length > 2) throw new SyntaxError(`${Operators.ExponentialOperator} must be followed by an integer with less than 3 digits`);
                 return Value.const(10).pow(arg);

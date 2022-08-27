@@ -14,6 +14,10 @@ export namespace Delimiters {
 
     export const Fraction = "⌟";
     export const DotProduct = "⋅";
+
+    export const EstimatedX = "x̂";
+    export const EstimatedY = "ŷ";
+    export const EstimatedX2 = "X̂";
 }
 
 export namespace Operators {
@@ -29,7 +33,7 @@ export namespace Operators {
     export const Level9 = ["*", "/", "mod"]; // Multiplication, Division, Modulus
     export const Level8 = [Delimiters.DotProduct]; // Dot Product
     export const Level7 = ["choose", "permute", "multichoose", "∠"]; // Permutation, Combination, Complex Number  Polar Coordinate Symbol
-    export const Level6 = ["ẍ", "ÿ"]; // Statistical Estimated Value Calculations
+    export const Level6 = [Delimiters.EstimatedX, Delimiters.EstimatedY, Delimiters.EstimatedX2]; // Statistical Estimated Value Calculations
     export const Level5 = ["d", "h", "b", "o"]; // Prefix Symbols
     export const Level4 = [Delimiters.Fraction]; // Fractions
     export const Level3 = ["^", "ˣ√"]; // Power, Power Root
