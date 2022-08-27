@@ -25,7 +25,7 @@ export class Formatter {
         if (value.isSexagesimal()) return this.sexagesimal(value);
 
         const base = this.ctx.getModeProperty("numberBase");
-        if (base !== NumberBase.Decimal) return this.base(value, base);
+        if (base !== NumberBase.Dec) return this.base(value, base);
 
         return this.float(value);
     }
@@ -115,18 +115,18 @@ export class Formatter {
     base(data: Value, base: NumberBase) {
         if (data.isNegative()) {
             switch (base) {
-                case NumberBase.Binary:
+                case NumberBase.Bin:
                     data = data.plus(0b10000000000);
                     break;
-                case NumberBase.Octal:
+                case NumberBase.Oct:
                     data = data.plus(0o10000000000);
                     break;
-                case NumberBase.Hexadecimal:
+                case NumberBase.Hex:
                     data = data.plus(0x10000000000);
                     break;
             }
         }
-        const based = ConversionUtils.toBase(data, NumberBase.Decimal, base);
+        const based = ConversionUtils.toBase(data, NumberBase.Dec, base);
         return based.eval().text();
     }
     termCoefficient(data: Value): string {

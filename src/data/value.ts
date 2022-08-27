@@ -1,10 +1,19 @@
 import nerdamer = require("nerdamer");
+import { MathError } from "./errors";
 import { M } from "./math";
 
 const cache = new Map<string, Value>();
 
+function anyIsNegative(x: Value | number) {
+    return x instanceof Value ? x.isNegative() : x < 0;
+}
+
 function anyIsInteger(x: Value | number) {
     return x instanceof Value ? x.isInteger() : Number.isInteger(x);
+}
+
+function anyIsComplex(x: Value | number): x is Value {
+    return x instanceof Value ? x.isComplex() :false;
 }
 
 function isMatrix(x: nerdamer.Expression) {
@@ -146,27 +155,69 @@ export class Value {
         return new Value(retval, Value.typeTwoTerms(this, Value.const(rhs)));
     }
 
-    times(rhs: Value | number) {
+    times(rhs: Value | number): Value {
+        if (anyIsComplex(this) && anyIsComplex(rhs)) { // Fix nerdamer bug
+            const A = M.re(this);
+            const B = M.im(this);
+            const C = M.re(rhs);
+            const D = M.im(rhs);
+            const re = A.times(C).minus(B.times(D));
+            const im = A.times(D).plus(B.times(C));
+            return M.complex(re, im);
+        }
         const retval = this.value.multiply(rhs.valueOf());
         return new Value(retval, Value.typeSameTerm(this, Value.const(rhs)));
     }
 
-    div(rhs: Value | number) {
+    div(rhs: Value | number): Value {
+        if (anyIsComplex(rhs)) { // Fix nerdamer bug
+            const A = M.re(this);
+            const B = M.im(this);
+            const C = M.re(rhs);
+            const D = M.im(rhs);
+            const denominator = C.pow(2).plus(D.pow(2));
+            const re = A.times(C).plus(B.times(D)).div(denominator);
+            const im = B.times(C).minus(A.times(D)).div(denominator);
+            return M.complex(re, im);
+        }
         const retval = this.value.divide(rhs.valueOf());
         return new Value(retval, Value.typeSameTerm(this, Value.const(rhs)));
     }
 
-    over(rhs: Value | number) {
+    over(rhs: Value | number): Value {
+        if (anyIsComplex(rhs)) { // Fix nerdamer bug
+            const A = M.re(this);
+            const B = M.im(this);
+            const C = M.re(rhs);
+            const D = M.im(rhs);
+            const denominator = C.pow(2).plus(D.pow(2));
+            const re = A.times(C).plus(B.times(D)).over(denominator);
+            const im = B.times(C).minus(A.times(D)).over(denominator);
+            return M.complex(re, im);
+        }
         const retval = this.value.divide(rhs.valueOf());
         return new Value(retval, Value.fractionOutcome(this, Value.const(rhs)))
     }
 
-    pow(rhs: Value | number) {
+    pow(rhs: Value | number): Value {
+        if (this.isComplex()) {
+            const power = Value.const(rhs);
+            if (power.eq(negOne)) {
+                return one.div(this);
+            } else if (power.eq(two)) {
+                return this.times(this);
+            } else if (power.eq(three)) {
+                return this.times(this).times(this);
+            } else throw new MathError();
+        }
         const retval = this.value.pow(rhs.valueOf());
         return new Value(retval, anyIsInteger(rhs) ? this.numericType : ValueNumericType.Decimal);
     }
 
     root(rhs: Value | number) {
+        if (this.isComplex()) {
+            throw new MathError();
+        }
         const pow = one.div(rhs);
         const retval = this.value.pow(pow.value);
         return new Value(retval, anyIsInteger(rhs) ? this.numericType : ValueNumericType.Decimal);
@@ -211,6 +262,7 @@ export class Value {
     }
 
     static typeTwoTerms(lhs: Value, rhs: Value): ValueNumericType {
+        // TODO: Optimize this
         const lhsReal = lhs.isReal(), rhsReal = rhs.isReal();
         const lhsDecimal = lhs.isDecimal(), rhsDecimal = rhs.isDecimal();
         const lhsFraction = lhs.isFraction(), rhsFraction = rhs.isFraction();
@@ -236,5 +288,8 @@ export class Value {
     }
 }
 
+export const negOne = Value.const(-1);
 export const zero = Value.const(0);
 export const one = Value.const(1);
+export const two = Value.const(2);
+export const three = Value.const(3);

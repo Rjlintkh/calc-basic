@@ -40,12 +40,3 @@ export class Config {
     [ConfigProperty.DecimalPointCharacter] = DecimalPointCharacter.Dot;
     [ConfigProperty.FrequencySetting] = FrequencySetting.FreqOn;
 }
-
-/*
-1EngON    2EngOFF    Specifies whether engineering symbols are used (EngON) or not used (EngOFF) during value input. The “Eng” indicator is displayed while EngON is selected.
-1a+b  i    2r  ∠  􀀁  (CMPLX Mode/EQN Mode only)   Specifies either rectangular coordinates ( a + b  i ) or polar coordinates ( r  ∠  􀀁 ) for CMPLX Mode/EQN Mode solutions. The “r ∠  􀀁 ” indicator is displayed while polar coordinates ( r  ∠  􀀁 ) are selected. 
-1ab/c    2d/c    Specifies either mixed fraction (ab/c) or improper fraction (d/c) for display of fractions in calculation results. 
-1Dot    2Comma    Specifies whether to display a dot or a comma for the calculation result decimal point. A dot is always displayed during input.
-   Dot:  Period decimal point, comma separator
- Comma: Comma decimal point, period separator 
-*/

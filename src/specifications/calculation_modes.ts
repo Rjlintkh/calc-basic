@@ -12,7 +12,7 @@ export abstract class CalculationMode {
 
     disableFormula = false;
 
-    numberBase = NumberBase.Decimal;
+    numberBase = NumberBase.Dec;
 
     validateRange(value: Value) {
         const abs = M.abs(value);
@@ -46,18 +46,18 @@ export class BaseMode extends CalculationMode {
     constructor() {
         super("BASE", "Calculations involving specific number systems (binary, octal, decimal, hexadecimal)");
         this.alwaysInteger = true;
-        this.numberBase = NumberBase.Decimal;
+        this.numberBase = NumberBase.Dec;
     }
 
     validateRange(value: Value) {
         switch (this.numberBase) {
-            case NumberBase.Binary:
+            case NumberBase.Bin:
                 return value.gte(-512) && value.lt(512);
-            case NumberBase.Octal:
+            case NumberBase.Oct:
                 return value.gte(-536870912) && value.lt(536870912);
-            case NumberBase.Decimal:
+            case NumberBase.Dec:
                 return value.gt(-2147483648) && value.lt(2147483648);
-            case NumberBase.Hexadecimal:
+            case NumberBase.Hex:
                 return value.gt(-2147483648) && value.lt(2147483648);
         }
     }

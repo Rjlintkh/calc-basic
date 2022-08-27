@@ -4,13 +4,13 @@ import { Value } from "./value";
 
 function checkBase(str: string, base: NumberBase): boolean {
     switch (base) {
-        case NumberBase.Binary:
+        case NumberBase.Bin:
             return /^[-01]+$/.test(str);
-        case NumberBase.Octal:
+        case NumberBase.Oct:
             return /^[-0-7]+$/.test(str);
-        case NumberBase.Decimal:
+        case NumberBase.Dec:
             return /^[-0-9]+$/.test(str);
-        case NumberBase.Hexadecimal:
+        case NumberBase.Hex:
             return /^[-0-9a-f]+$/.test(str);
     }
 }
@@ -52,7 +52,7 @@ export namespace ConversionUtils {
         if (from === to) return value;
 
         let str = value.text();
-        if (from === NumberBase.Hexadecimal) str = escapeHex(str);
+        if (from === NumberBase.Hex) str = escapeHex(str);
 
         if (!checkBase(str, from)) throw new SyntaxError(`${str} is not a valid integer in base ${from}`);
 

@@ -28,7 +28,7 @@ export namespace Operators {
     export const Level10 = ["+", "-"]; // Addition, Subtraction// export const Level1 = Parentheical Functions
     export const Level9 = ["*", "/", "mod"]; // Multiplication, Division, Modulus
     export const Level8 = [Delimiters.DotProduct]; // Dot Product
-    export const Level7 = ["choose", "permute", "∠"]; // Permutation, Combination, Complex Number  Polar Coordinate Symbol
+    export const Level7 = ["choose", "permute", "multichoose", "∠"]; // Permutation, Combination, Complex Number  Polar Coordinate Symbol
     export const Level6 = ["ẍ", "ÿ"]; // Statistical Estimated Value Calculations
     export const Level5 = ["d", "h", "b", "o"]; // Prefix Symbols
     export const Level4 = [Delimiters.Fraction]; // Fractions

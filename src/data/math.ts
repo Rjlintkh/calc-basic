@@ -4,9 +4,7 @@ import { Value, ValueNumericType, ValueObjectType } from "./value";
 // @ts-ignore
 import("nerdamer/Calculus");
 
-const zero = nerdamer("0");
-const one = nerdamer("1");
-const pi = nerdamer("pi");
+const zero = nerdamer("0"); 
 
 function nerdamerCall(name: string, ...args: (nerdamer.Expression|string)[]): nerdamer.Expression {
     return (<any>nerdamer)[name](...args);
@@ -16,14 +14,10 @@ function nerdamerICall<T>(instance: nerdamer.Expression, name: string, ...args: 
     return (<any>instance)[name](...args);
 }
 
-function nerdamerIEval(instance: nerdamer.Expression, options: any): nerdamer.Expression {
-    return (<any>instance).evaluate(options);
-}
-
 export function isRational(q: nerdamer.Expression): boolean {
     if (q.isImaginary()) {
-        const re = nerdamerCall("realpart", q);
-        const im = nerdamerCall("imagpart", q);
+        const re = nerdamerCall("realpart", q.evaluate().expand());
+        const im = nerdamerCall("imagpart", q.evaluate().expand());
         return isRational(re) && isRational(im);
     }
     const numerator = nerdamerICall<nerdamer.Expression>(q, "numerator").text();
@@ -41,10 +35,10 @@ export enum AngleUnit {
 }
 
 export enum NumberBase {
-    Binary = 2,
-    Octal = 8,
-    Decimal = 10,
-    Hexadecimal = 16,
+    Bin = 2,
+    Oct = 8,
+    Dec = 10,
+    Hex = 16,
 }
 
 export namespace M {
@@ -153,23 +147,27 @@ export namespace M {
     }
 
     export function re(a: Value) {
-        const retval = nerdamerCall("realpart", a.value.evaluate().expand());
+        const retval = nerdamerCall("realpart", a.value);
         return new Value(retval, a.numericType);
     }
     export function im(a: Value) {
-        const retval = nerdamerCall("imagpart", a.value.evaluate().expand());
+        const retval = nerdamerCall("imagpart", a.value);
         return new Value(retval, a.numericType);
     }
-    export function polarComplex(a: Value, b: Value) {
+    export function complexPol(a: Value, b: Value) {
         const re = a.times(M.cos(b)).text();
         const im = a.times(M.sin(b)).text();
         const retval = nerdamer(`${re}+${im}i`);
         return new Value(retval, a.numericType);
     }
+    export function complex(a: Value, b: Value) {
+        const retval = nerdamer(`${a.text()}+${b.text()}i`);
+        return new Value(retval, a.numericType);
+    }
     export function conjg(a: Value) {
         if (a.isComplex()) {
-            const re = nerdamerCall("realpart", a.value.evaluate().expand());
-            const im = nerdamerCall("imagpart", a.value.evaluate().expand());
+            const re = nerdamerCall("realpart", a.value);
+            const im = nerdamerCall("imagpart", a.value);
             const retval = nerdamer(`${re}-${im}i`);
             return new Value(retval, a.numericType);
         }

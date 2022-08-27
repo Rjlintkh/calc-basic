@@ -215,13 +215,13 @@ export class Interpreter {
     private async evaluateUnaryExpression(node: UnaryExpressionNode, options: EvaluateOptions) {
         switch (node.operator) {
             case "d": 
-                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Decimal, ...options});
+                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Dec, ...options});
             case "h":
-                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Hexadecimal, ...options});
+                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Hex, ...options});
             case "b":
-                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Binary, ...options});
+                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Bin, ...options});
             case "o":
-                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Octal, ...options});
+                return this.evaluateNumericLiteral(<NumericLiteralNode>node.arg, {base: NumberBase.Oct, ...options});
         }
         const arg = await this.evaluateAny(node.arg, options);
         switch (node.operator) {
@@ -293,9 +293,11 @@ export class Interpreter {
                 return M.nCr(left, right);
             case "permute":
                 return M.nPr(left, right);
+            case "multichoose":
+                return M.nPr(left, right);
             case "∠": {
                 const angle = ConversionUtils.toAngleUnit(right, this.ctx.getConfigProperty(ConfigProperty.AngleUnit), AngleUnit.Rad);
-                return M.polarComplex(left, angle);
+                return M.complexPol(left, angle);
             }
             case "mod":
                 return M.mod(left, right);
@@ -488,7 +490,7 @@ export class Interpreter {
     private evaluateNumericLiteral(node: NumericLiteralNode, options: EvaluateOptions) {
         const value = ConversionUtils.escapeHex(node.value);
         const base = options.base ?? this.ctx.getModeProperty("numberBase");
-        const based = ConversionUtils.toBase(new Value(nerdamer(value), ValueNumericType.Decimal), base, NumberBase.Decimal);
+        const based = ConversionUtils.toBase(new Value(nerdamer(value), ValueNumericType.Decimal), base, NumberBase.Dec);
         this.ctx.validateRange(based);
         return based;
     }
@@ -545,25 +547,15 @@ export class Interpreter {
                 this.ctx.initTable();
                 break;
             case Keyword.Deg:
-                this.ctx.setConfigProperty(ConfigProperty.AngleUnit, AngleUnit.Deg);
-                break;
             case Keyword.Rad:
-                this.ctx.setConfigProperty(ConfigProperty.AngleUnit, AngleUnit.Rad);
-                break;
             case Keyword.Gra:
-                this.ctx.setConfigProperty(ConfigProperty.AngleUnit, AngleUnit.Gra);
+                this.ctx.setConfigProperty(ConfigProperty.AngleUnit, AngleUnit[node.name]);
                 break;
             case Keyword.Dec:
-                this.ctx.setModeProperty("numberBase", NumberBase.Decimal);
-                break;
             case Keyword.Hex:
-                this.ctx.setModeProperty("numberBase", NumberBase.Hexadecimal);
-                break;
             case Keyword.Bin:
-                this.ctx.setModeProperty("numberBase", NumberBase.Binary);
-                break;
             case Keyword.Oct:
-                this.ctx.setModeProperty("numberBase", NumberBase.Octal);
+                this.ctx.setModeProperty("numberBase", NumberBase[node.name]);
                 break;
         }
         return zero;
