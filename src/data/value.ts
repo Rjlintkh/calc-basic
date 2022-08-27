@@ -32,6 +32,28 @@ function containsDummyVariable(x: nerdamer.Expression) {
     return x.variables().includes("X");
 }
 
+function fixNerdamerRidiculouslyLargeMantissa(x: nerdamer.Expression) {
+    /*
+        Happens when `(74499982/74216053)^350` is evaluated.
+        Results in BigInteger with 394 chunks of numbers.
+    */
+    const any = x as any;
+    if (!any?.symbol?.multiplier) return;
+
+    const num = <{value: number[]}>any.symbol.multiplier.num;
+    const numLen = num.value.length;
+    if (!Array.isArray(num.value) || numLen <= 3) return;
+
+    const den = <{value: number[]}>any.symbol.multiplier.den;
+    const denLen = den.value.length;
+    if (!Array.isArray(den.value) || denLen <= 3) return;
+
+    const reduced = x.text();
+    any.symbol = (nerdamer(reduced) as any).symbol;
+
+    // console.info(`Fixed, (${numLen} + ${denLen})`);
+}
+
 export enum ValueObjectType {
     Real,
     Complex,
@@ -91,6 +113,7 @@ export class Value {
     numericType: ValueNumericType;
 
     constructor(public value: nerdamer.Expression, numericType = ValueNumericType.Decimal) {
+        fixNerdamerRidiculouslyLargeMantissa(this.value);
         this.objectType = Value.objectType(this);
         
         this.numericType = numericType ?? ValueNumericType.Decimal;
