@@ -1,6 +1,6 @@
 export namespace Delimiters {
     export const Whitespace = [" ", "\t", "\n", "\r"];
-    export const Word = /[A-Za-zΑ-Ωα-ω∫]|[#/?+-]/;
+    export const Word = /[A-Za-zΑ-Ωα-ω∫]|[#+\-/?_]/;
 
     export const Number = /[0-9𝗔𝗕𝗖𝗗𝗘𝗙]/;
     export const Dot = ".";

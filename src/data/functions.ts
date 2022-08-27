@@ -85,14 +85,14 @@ const predefinedFunctions = [
         const r = M.sqrt(a.pow(2).plus(b.pow(2)));
         const theta = M.atan(b.over(a));
         this.setVariable("X", r);
-        this.setVariable("Y", Angle.prototype.convertResult(theta, this));
+        this.setVariable(this.secondaryValueVariable, Angle.prototype.convertResult(theta, this));
         return r;
     }),
     new WrappedFunction("Rec", [Real, Angle], Real, function(a, b) {
         const x = a.times(M.cos(b));
         const y = a.times(M.sin(b));
         this.setVariable("X", x);
-        this.setVariable("Y", y);
+        this.setVariable(this.secondaryValueVariable, y);
         return x;
     }),
 ];

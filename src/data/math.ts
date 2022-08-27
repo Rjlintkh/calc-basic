@@ -154,7 +154,7 @@ export namespace M {
         const retval = nerdamerCall("imagpart", a.value);
         return new Value(retval, a.numericType);
     }
-    export function complexPol(a: Value, b: Value) {
+    export function rcis(a: Value, b: Value) {
         const re = a.times(M.cos(b)).text();
         const im = a.times(M.sin(b)).text();
         const retval = nerdamer(`${re}+${im}i`);

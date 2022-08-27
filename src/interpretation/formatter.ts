@@ -43,9 +43,9 @@ export class Formatter {
         });
     }
     float(data: Value): string {
-        const text = data.eval().text();
+        const value = <number>data.eval().valueOf();
 
-        const abs = Math.abs(+text);
+        const abs = Math.abs(value);
         const outOfBounds = abs !== 0 && (abs >= 1e10 || abs < 1e-3); // 1e-10 for NORM 2
 
         const int = this.ctx.getModeProperty("alwaysInteger") && data.isFraction();
@@ -54,7 +54,7 @@ export class Formatter {
             notation: outOfBounds ? "scientific" : "standard",
             maximumSignificantDigits: 10,
             useGrouping: false
-        }).format(int ? ~~text : +text);//.replace(/E/g, "×₁₀");
+        }).format(int ? ~~value : +value);//.replace(/E/g, "×₁₀");
 
         let digits = 0;
         let fraction = false;
@@ -63,7 +63,7 @@ export class Formatter {
         for (let c of sigfig10) {
             if (/\d/.test(c)) {
                 digits++;
-                if (digits > 10) {
+                if (digits > 10 && !exp) {
                     continue;
                 }
             }

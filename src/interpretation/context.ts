@@ -25,6 +25,8 @@ export class Context {
         this.variables[name] = value;
     }
 
+    secondaryValueVariable: "Y" | "F" = "Y";
+
     private initVariableMemory() {
         this.variables.A = zero;
         this.variables.B = zero;

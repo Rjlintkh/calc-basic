@@ -306,7 +306,7 @@ export class Interpreter {
                 return M.nPr(left, right);
             case "∠": {
                 const angle = ConversionUtils.toAngleUnit(right, this.ctx.getConfigProperty(ConfigProperty.AngleUnit), AngleUnit.Rad);
-                return M.complexPol(left, angle);
+                return M.rcis(left, angle);
             }
             case "mod":
                 return M.mod(left, right);
