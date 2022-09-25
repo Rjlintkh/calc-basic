@@ -1,6 +1,6 @@
 import nerdamer = require("nerdamer");
 import { ArgumentError, MathError } from "./errors";
-import { Value, ValueNumericType, ValueObjectType } from "./value";
+import { AlgebraicObject, Field, NumericRepresentation } from "./value";
 // @ts-ignore
 import("nerdamer/Calculus");
 
@@ -42,206 +42,209 @@ export enum NumberBase {
 }
 
 export namespace M {
-    export function sin(a: Value) {
+    export function sin(a: AlgebraicObject) {
         const retval = nerdamerCall("sin", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function cos(a: Value) {
+    export function cos(a: AlgebraicObject) {
         const retval = nerdamerCall("cos", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function tan(a: Value) {
+    export function tan(a: AlgebraicObject) {
         const retval = nerdamerCall("tan", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function asin(a: Value) {
+    export function asin(a: AlgebraicObject) {
         const retval = nerdamerCall("asin", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function acos(a: Value) {
+    export function acos(a: AlgebraicObject) {
         const retval = nerdamerCall("acos", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function atan(a: Value) {
+    export function atan(a: AlgebraicObject) {
         const retval = nerdamerCall("atan", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function sinh(a: Value) {
+    export function sinh(a: AlgebraicObject) {
         const retval = nerdamerCall("sinh", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function cosh(a: Value) {
+    export function cosh(a: AlgebraicObject) {
         const retval = nerdamerCall("cosh", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function tanh(a: Value) {
+    export function tanh(a: AlgebraicObject) {
         const retval = nerdamerCall("tanh", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function asinh(a: Value) {
+    export function asinh(a: AlgebraicObject) {
         const retval = nerdamerCall("asinh", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function acosh(a: Value) {
+    export function acosh(a: AlgebraicObject) {
         const retval = nerdamerCall("acosh", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function atanh(a: Value) {
+    export function atanh(a: AlgebraicObject) {
         const retval = nerdamerCall("atanh", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
 
-    export function sqrt(a: Value) {
+    export function sqrt(a: AlgebraicObject) {
         const retval = nerdamerCall("sqrt", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function cbrt(a: Value) {
+    export function cbrt(a: AlgebraicObject) {
         const retval = nerdamerCall("cbrt", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function factorial(a: Value) {
+    export function factorial(a: AlgebraicObject) {
         if (!a.isInteger() || a.isNegative() || a.gte(70)) throw new MathError();
         const retval = nerdamerCall("factorial", a.value);
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
-    export function nPr(a: Value, b: Value) {
+    export function nPr(a: AlgebraicObject, b: AlgebraicObject) {
         if (!a.gt(0) || !a.isInteger() ||
             !b.gt(0) || !a.isInteger() ||
             !a.gte(b)) throw new MathError();
         return M.factorial(a).div(M.factorial(a.minus(b)));
     }
-    export function nCr(a: Value, b: Value) {
+    export function nCr(a: AlgebraicObject, b: AlgebraicObject) {
         return M.nPr(a, b).div(M.factorial(b));
     }
-    export function nHr(a: Value, b: Value) {
+    export function nHr(a: AlgebraicObject, b: AlgebraicObject) {
         return M.nCr(a.plus(b).minus(1), b);
     }
 
-    export function log(a: Value, b?: Value) {
+    export function log(a: AlgebraicObject, b?: AlgebraicObject) {
         if (b == null) {
             if (a.lte(0)) throw new MathError();
             const retval = nerdamerCall("log10", a.value);
-            return new Value(retval, ValueNumericType.Decimal);
+            return new AlgebraicObject(retval, NumericRepresentation.Decimal);
         } else {
             const retval = nerdamerCall("log", b.value, a.value);
-            return new Value(retval, ValueNumericType.Decimal);
+            return new AlgebraicObject(retval, NumericRepresentation.Decimal);
         }
     }
-    export function ln(a: Value) {
+    export function ln(a: AlgebraicObject) {
         if (a.lte(0)) throw new MathError();
         const retval = nerdamerCall("log", a.value);
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
-    export function exp(a: Value) {
+    export function exp(a: AlgebraicObject) {
         const retval = nerdamerCall("exp", a.value);
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
 
-    export function numerator(a: Value) {
+    export function numerator(a: AlgebraicObject) {
         const retval = nerdamerICall<nerdamer.Expression>(a.value, "numerator");
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
-    export function denominator(a: Value) {
+    export function denominator(a: AlgebraicObject) {
         const retval = nerdamerICall<nerdamer.Expression>(a.value, "denominator");
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
 
-    export function re(a: Value) {
+    export function re(a: AlgebraicObject) {
         const retval = nerdamerCall("realpart", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.tupleFormats[0]);
     }
-    export function im(a: Value) {
+    export function im(a: AlgebraicObject) {
         const retval = nerdamerCall("imagpart", a.value);
-        return new Value(retval, a.numericType);
+        if (!Number.isInteger(retval.valueOf()) && a.tupleFormats[1] === NumericRepresentation.Integer) {
+            return new AlgebraicObject(retval, NumericRepresentation.Fraction);
+        }
+        return new AlgebraicObject(retval, a.tupleFormats[1] ?? NumericRepresentation.Integer);
     }
-    export function rcis(a: Value, b: Value) {
+    export function rcis(a: AlgebraicObject, b: AlgebraicObject) {
         const re = a.times(M.cos(b)).text();
         const im = a.times(M.sin(b)).text();
         const retval = nerdamer(`${re}+${im}i`);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function complex(a: Value, b: Value) {
+    export function complex(a: AlgebraicObject, b: AlgebraicObject) {
         const retval = nerdamer(`${a.text()}+${b.text()}i`);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function conjg(a: Value) {
+    export function conjg(a: AlgebraicObject) {
         if (a.isComplex()) {
             const re = nerdamerCall("realpart", a.value);
             const im = nerdamerCall("imagpart", a.value);
             const retval = nerdamer(`${re}-${im}i`);
-            return new Value(retval, a.numericType);
+            return new AlgebraicObject(retval, a.format);
         }
-        return new Value(a.value, a.numericType);
+        return new AlgebraicObject(a.value, a.format);
     }
-    export function arg(a: Value) {
+    export function arg(a: AlgebraicObject) {
         const retval = nerdamerCall("arg", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
 
-    export function or(a: Value, b: Value) {
-        return Value.const(+a.value | +b.value);
+    export function or(a: AlgebraicObject, b: AlgebraicObject) {
+        return AlgebraicObject.const(+a.value | +b.value);
     }
-    export function xor(a: Value, b: Value) {
-        return Value.const(+a.value ^ +b.value);
+    export function xor(a: AlgebraicObject, b: AlgebraicObject) {
+        return AlgebraicObject.const(+a.value ^ +b.value);
     }
-    export function xnor(a: Value, b: Value) {
-        return Value.const(~(+a.value ^ +b.value));
+    export function xnor(a: AlgebraicObject, b: AlgebraicObject) {
+        return AlgebraicObject.const(~(+a.value ^ +b.value));
     }
-    export function and(a: Value, b: Value) {
-        return Value.const(+a.value & +b.value);
+    export function and(a: AlgebraicObject, b: AlgebraicObject) {
+        return AlgebraicObject.const(+a.value & +b.value);
     }
-    export function not(a: Value) {
+    export function not(a: AlgebraicObject) {
         let retval = nerdamer(`${~+a.text()}`);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function neg(a: Value) {
+    export function neg(a: AlgebraicObject) {
         let retval = zero.subtract(a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
 
-    export function ranint(a: Value, b: Value) {
-        if (a.gte(b)) throw new ArgumentError();
+    export function ranint(a: AlgebraicObject, b: AlgebraicObject) {
+        if (a.gte(b) || a.abs().gte(1e10) || b.abs().gte(1e10)) throw new ArgumentError();
         const random = Math.random();
         const low =  a.value;
         const high = b.value;
         const retval = nerdamerCall("floor", low.add(high.subtract(low).add(1).multiply(random)));
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
     export function rand() {
         const retval = Math.random();
-        return new Value(nerdamer(retval+""), ValueNumericType.Decimal);
+        return new AlgebraicObject(nerdamer(retval+""), NumericRepresentation.Decimal);
     }
-    export function lcm(a: Value, b: Value) {
+    export function lcm(a: AlgebraicObject, b: AlgebraicObject) {
         const retval = nerdamerCall("lcm", a.value, b.value);
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
-    export function gcd(a: Value, b: Value) {
+    export function gcd(a: AlgebraicObject, b: AlgebraicObject) {
         const retval = nerdamerCall("gcd", a.value, b.value);
-        return new Value(retval, ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
-    export function int(a: Value) {
+    export function int(a: AlgebraicObject) {
         const retval = nerdamer(`${~~a.value}`);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function ceil(a: Value) {
+    export function ceil(a: AlgebraicObject) {
         const retval = nerdamerCall("ceil", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function floor(a: Value) {
+    export function floor(a: AlgebraicObject) {
         const retval = nerdamerCall("floor", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function abs(a: Value) {
+    export function abs(a: AlgebraicObject) {
         const retval = nerdamerCall("abs", a.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
 
-    export function differentiate(a: Value, b: Value, c?: Value) {
+    export function differentiate(a: AlgebraicObject, b: AlgebraicObject, c?: AlgebraicObject) {
         const derivative = nerdamer.diff(a.value, "X");
         const retval = derivative.sub("X", b.value.text());
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function integrate(a: Value, b: Value, c: Value, d?: Value) {
+    export function integrate(a: AlgebraicObject, b: AlgebraicObject, c: AlgebraicObject, d?: AlgebraicObject) {
     /*
         const antiderivative = nerdamer.integrate(a.value, "X");
         const high = nerdamerIEval(antiderivative, { X: c.value });
@@ -249,27 +252,27 @@ export namespace M {
         const retval = high.subtract(low);
     */
         const retval = nerdamerCall("defint", a.value, b.value, c.value, "X");
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function sum(a: Value, b: Value, c: Value) {
+    export function sum(a: AlgebraicObject, b: AlgebraicObject, c: AlgebraicObject) {
         if (b.gt(c)) throw new ArgumentError("Start index must be less than or equal to end index");
         const retval = nerdamerCall("sum", a.value, "X", b.value, c.value);
-        return new Value(retval, a.numericType);
+        return new AlgebraicObject(retval, a.format);
     }
-    export function product(a: Value, b: Value, c: Value) {
+    export function product(a: AlgebraicObject, b: AlgebraicObject, c: AlgebraicObject) {
         if (b.gt(c)) throw new ArgumentError("Start index must be less than or equal to end index");
-        const retval = nerdamerCall("product", a.value, "X", b.value, c.value);
-        return new Value(retval, a.numericType);
+        const retval = nerdamerCall("product", a.value, "X", b.value, c.value); 
+        return new AlgebraicObject(retval, a.format);
     }
 
-    export function mod(a: Value, b: Value) {
+    export function mod(a: AlgebraicObject, b: AlgebraicObject) {
         const dividend = a.value;
         const divisor = b.value;
         const remainder = nerdamerCall("mod", dividend, divisor);
         const quotient = nerdamerCall("floor", dividend.divide(divisor));
-        const retval = new Value(remainder, ValueNumericType.Decimal);
-        retval.objectType = ValueObjectType.Multi;
-        retval.secondary = new Value(quotient);
+        const retval = new AlgebraicObject(remainder, NumericRepresentation.Decimal);
+        retval.field = Field.Multi;
+        retval.addAdditionalValue(new AlgebraicObject(quotient));
         return retval;
     }
 }

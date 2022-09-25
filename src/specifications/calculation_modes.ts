@@ -1,7 +1,8 @@
-import { M, NumberBase } from "../data/math";
-import { Regression } from "../data/stat_utils";
+import { NumberBase } from "../data/math";
 import { PairedVarTable, SingleVarTable, Table } from "../data/table";
-import { Value } from "../data/value";
+import { Regression } from "../data/utils/stat_utils";
+import { AlgebraicObject } from "../data/value";
+import { Capabilities } from "./capabilities";
 
 export abstract class CalculationMode {
     constructor(protected name: string, private desc: string) {}
@@ -14,9 +15,9 @@ export abstract class CalculationMode {
 
     numberBase = NumberBase.Dec;
 
-    validateRange(value: Value) {
-        const abs = M.abs(value);
-        return abs.eq(0) || (abs.gt(1e-100) && abs.lt(1e100));
+    validateRange(value: AlgebraicObject) {
+        const abs = Math.abs(value.number());
+        return abs === 0 || (abs >= Capabilities.AbsMinValue && abs <= Capabilities.AbsMaxValue);
     }
 
     gridMode = false;
@@ -49,16 +50,16 @@ export class BaseMode extends CalculationMode {
         this.numberBase = NumberBase.Dec;
     }
 
-    validateRange(value: Value) {
+    validateRange(value: AlgebraicObject) {
+        const num = value.number();
         switch (this.numberBase) {
             case NumberBase.Bin:
-                return value.gte(-512) && value.lt(512);
+                return num >= -0b1000000000 && num < 0b1000000000;
             case NumberBase.Oct:
-                return value.gte(-536870912) && value.lt(536870912);
+                return num >= -0o4000000000 && num < 0o4000000000;
             case NumberBase.Dec:
-                return value.gt(-2147483648) && value.lt(2147483648);
             case NumberBase.Hex:
-                return value.gt(-2147483648) && value.lt(2147483648);
+                return num >= -0x80000000 && num < 0x80000000;
         }
     }
 }

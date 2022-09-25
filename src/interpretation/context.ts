@@ -1,18 +1,19 @@
 import { MathError } from "../data/errors";
 import { NumberBase } from "../data/math";
-import { Regression } from "../data/stat_utils";
 import { FormattedTable, Table } from "../data/table";
-import { Value, zero } from "../data/value";
+import { Regression } from "../data/utils/stat_utils";
+import { AlgebraicObject, Field, zero } from "../data/value";
 import { CalculationMode } from "../specifications/calculation_modes";
 import { Config, ConfigProperty } from "./config";
-import { Formatter } from "./formatter";
+import { FormattedCluster, Formatter } from "./formatter";
 
 export class Context {
     constructor() {
         this.initMemory();
     }
 
-    private variables: Record<string, Value> = {};
+    private variables: Record<string, AlgebraicObject> = {};
+    private formulaVariables: Record<string, AlgebraicObject> = {};
 
     getVariable(name: string) {
         const value = this.variables[name] ?? null;
@@ -20,9 +21,20 @@ export class Context {
         return value;
     }
 
-    setVariable(name: string, value: Value) {
+    setVariable(name: string, value: AlgebraicObject) {
         this.getVariable(name);
         this.variables[name] = value;
+    }
+
+    getFormulaVariable(name: string) {
+        const value = this.formulaVariables[name] ?? null;
+        if (value == null) throw new ReferenceError(`${name} is not defined`);
+        return value;
+    }
+
+    setFormulaVariable(name: string, value: AlgebraicObject) {
+        this.getFormulaVariable(name);
+        this.formulaVariables[name] = value;
     }
 
     secondaryValueVariable: "Y" | "F" = "Y";
@@ -36,6 +48,10 @@ export class Context {
         this.variables.F = zero;
         this.variables.X = zero;
         this.variables.Y = zero;
+
+        this.formulaVariables = {
+            
+        }
     }
 
     private initAnswerMemory() {
@@ -53,7 +69,7 @@ export class Context {
         this.initIndependentMemory();
     }
 
-    newAnswer(value: Value) {
+    newAnswer(value: AlgebraicObject) {
         this.variables.PreAns = this.variables.Ans;
         this.variables.Ans = value;
     }
@@ -103,14 +119,19 @@ export class Context {
 
     private formatter = new Formatter(this);
 
-    format(data: Value): string;
+    format(data: AlgebraicObject): string;
     format(data: Table): FormattedTable;
     format(data: any): any {
-        return this.formatter.format(data);
+        const formatted = this.formatter.format(data);
+        if (formatted instanceof FormattedCluster) {
+            return formatted.complex();
+        }
+        return formatted;
     }
 
-    validateRange(value: Value) {
+    validateRange(value: AlgebraicObject) {
         const mode = this.config[ConfigProperty.CalculationMode];
+        if (value.field !== Field.Real) return;
         const valid = mode.validateRange(value);
         if (!valid) throw new MathError(`Value is out of range`);
     }

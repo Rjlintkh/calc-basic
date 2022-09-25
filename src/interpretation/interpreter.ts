@@ -1,12 +1,12 @@
 import nerdamer from "nerdamer";
-import { getConstant } from "../data/constants";
-import { ConversionUtils } from "../data/conversion_utils";
 import { GoError, MathError } from "../data/errors";
-import { getFunction } from "../data/functions";
 import { AngleUnit, M, NumberBase } from "../data/math";
-import { StatUtils } from "../data/stat_utils";
+import { getConstant } from "../data/predefined/constants";
+import { getFunction } from "../data/predefined/functions";
 import { PairedVarTable, SingleVarTable } from "../data/table";
-import { one, Value, ValueNumericType, zero } from "../data/value";
+import { ConversionUtils } from "../data/utils/conversion_utils";
+import { StatUtils } from "../data/utils/stat_utils";
+import { AlgebraicObject, NumericRepresentation, one, zero } from "../data/value";
 import { BaseNode, BinaryExpressionNode, BreakStatementNode, CallExpressionNode, CommandNode, DataInputNode, ErrorNode, ExpressionStatementNode, ExpressionType, ForStatementNode, IfStatementNode, Implicity, NodeType, NumericLiteralNode, PairedDatumNode, ProgramNode, SymbolNode, TernaryExpressionNode, UnaryExpressionNode, UnconditionalJumpStatementNode, VariableAssignmentNode, WhileStatementNode } from "../parsing/nodes";
 import { Parser } from "../parsing/parser";
 import { Delimiters, Keyword, NamedCalculation, Operators } from "../parsing/tokens";
@@ -25,7 +25,7 @@ export class Interpreter {
 
     private promptInputQueue = new Array<string | BaseNode>();
 
-    private allOutputs = new Array<Value>();
+    private allOutputs = new Array<AlgebraicObject>();
 
     private tmpParser?: Parser;
 
@@ -52,12 +52,12 @@ export class Interpreter {
         return await this.promptCallback(variable);
     }
 
-    private outputCallback?: (data: Value, formatted: string) => Promise<void>;
-    onOutput(callback: (data: Value, formatted: string) => Promise<void>) {
+    private outputCallback?: (data: AlgebraicObject, formatted: string) => Promise<void>;
+    onOutput(callback: (data: AlgebraicObject, formatted: string) => Promise<void>) {
         this.outputCallback = callback;
     }
 
-    private async output(data: Value) {
+    private async output(data: AlgebraicObject) {
         this.allOutputs.push(data);
         const formatted = this.ctx.format(data);
         if (!this.outputCallback) {
@@ -79,13 +79,13 @@ export class Interpreter {
         await this.errorCallback(err);
     }
 
-    private closeCallback?: (result: Value, formatted: string) => Promise<void>;
-    onClose(callback: (result: Value, formatted: string) => Promise<void>) {
+    private closeCallback?: (result: AlgebraicObject, formatted: string) => Promise<void>;
+    onClose(callback: (result: AlgebraicObject, formatted: string) => Promise<void>) {
         this.closeCallback = callback;
     }
 
 
-    private async close(result: Value) {
+    private async close(result: AlgebraicObject) {
         const formatted = this.ctx.format(result);
         if (!this.closeCallback) {
             return;
@@ -103,14 +103,14 @@ export class Interpreter {
     async evaluate() {
         const result = await this.evaluateAny(this.program, {}).catch(async err => {
             await this.error(<Error>err);
-            return Value.const("NaN");
+            return AlgebraicObject.const("NaN");
         });
         this.allOutputs.push(result);
         await this.close(result);
         return result;
     }
 
-    private async evaluateAny(node: BaseNode, options: EvaluateOptions): Promise<Value> {
+    private async _evaluateAny(node: BaseNode, options: EvaluateOptions) {
         switch (node.type) {
             case NodeType.Program:
                 return await this.evaluateProgram(<ProgramNode>node, options);
@@ -150,6 +150,12 @@ export class Interpreter {
         }
     }
 
+    private async evaluateAny(node: BaseNode, options: EvaluateOptions): Promise<AlgebraicObject> {
+        const value = await this._evaluateAny(node, options);
+        this.ctx.validateRange(value);
+        return value;
+    }
+
     private currentStatementIndex = 0;
 
     private jumpToIndex(index: number) {
@@ -173,8 +179,8 @@ export class Interpreter {
         this.pendingJumps.delete(from);
     }
 
-    private async evaluateProgram({body}: ProgramNode, options: EvaluateOptions): Promise<Value> {
-        let result = Value.const(0);
+    private async evaluateProgram({body}: ProgramNode, options: EvaluateOptions): Promise<AlgebraicObject> {
+        let result = AlgebraicObject.const(0);
         for (this.currentStatementIndex = 0; this.currentStatementIndex < body.length; this.currentStatementIndex++) {
             if (this.pendingJumps.has(this.currentStatementIndex)) {
                 const to = this.pendingJumps.get(this.currentStatementIndex)!;
@@ -256,9 +262,9 @@ export class Interpreter {
                 return StatUtils.estimatedX2(this.ctx.table, arg);
             case Operators.ExponentialOperator:
                 if (!arg.isInteger() || arg.text().length > 2) throw new SyntaxError(`${Operators.ExponentialOperator} must be followed by an integer with less than 3 digits`);
-                return Value.const(10).pow(arg);
+                return AlgebraicObject.const(10).pow(arg);
             case Operators.SexagesimalOperator:
-                return new Value(arg.value, ValueNumericType.Sexagesimal);
+                return new AlgebraicObject(arg.value, NumericRepresentation.Sexagesimal);
         }
         return zero;
     }
@@ -274,7 +280,7 @@ export class Interpreter {
             case "*": 
                 if (node.getImplicity() === Implicity.ParenthesizedSexagesimalImplicit) {
                     const retval = left.times(right);
-                    return new Value(retval.value, ValueNumericType.Decimal);
+                    return new AlgebraicObject(retval.value, NumericRepresentation.Decimal);
                 }
                 return left.times(right);
             case "/":
@@ -323,7 +329,7 @@ export class Interpreter {
                 return left.over(right);
             case Operators.SexagesimalOperator: {
                 const retval = left.plus(right.div(60));
-                return new Value(retval.value, ValueNumericType.Sexagesimal);
+                return new AlgebraicObject(retval.value, NumericRepresentation.Sexagesimal);
             }
         }
         return zero;
@@ -338,13 +344,13 @@ export class Interpreter {
                 const fraction = middle.over(right);
                 const mixed = left.plus(fraction);
                 const ret = ((left.isFraction() || left.isInteger()) && fraction.isFraction()) ?
-                    new Value(mixed.value, ValueNumericType.Fraction) : mixed;
+                    new AlgebraicObject(mixed.value, NumericRepresentation.Fraction) : mixed;
                 return ret;
             }
                 
             case Operators.SexagesimalOperator: {
                 const retval = left.plus(middle.div(60)).plus(right.div(3600));
-                return new Value(retval.value, ValueNumericType.Sexagesimal);
+                return new AlgebraicObject(retval.value, NumericRepresentation.Sexagesimal);
             }
         }
         return zero;
@@ -353,19 +359,21 @@ export class Interpreter {
     private async evaluateCallExpression(node: CallExpressionNode, options: EvaluateOptions) {
         const func = getFunction(node.callee.name);
         if (!func) throw new ReferenceError(`${node.callee.name} is not defined`);
-        const args = new Array<Value>();
+        const args = new Array<AlgebraicObject>();
         for (const [i, arg] of node.args.entries()) {
+            let argValue: AlgebraicObject;
             if (i === 0 && func.isExpressional()) {
-                args.push(await this.evaluateAny(arg, {...options, preserveX: true}));
+                argValue = await this.evaluateAny(arg, {...options, preserveX: true});
             } else {
-                args.push(await this.evaluateAny(arg, options));
+                argValue = await this.evaluateAny(arg, options);
             }
+            args.push(argValue);
         }
         return func.call(this.ctx, ...args);
     }
 
     private async evaluateVariableAssignment(node: VariableAssignmentNode, options: EvaluateOptions) {
-        let result: Value;
+        let result: AlgebraicObject;
         if (node.value instanceof SymbolNode && node.value.name === Delimiters.InputPrompt) {
             let input = await this.prompt(node.identifier.name);
             if (input != null) {
@@ -406,23 +414,23 @@ export class Interpreter {
             values.push(x);
         } else if (this.ctx.table instanceof PairedVarTable) {
             if (node.value instanceof PairedDatumNode) {
-                const x = node.value.primary ? await this.evaluateAny(node.value.primary, options) : Value.const(0);
+                const x = node.value.primary ? await this.evaluateAny(node.value.primary, options) : AlgebraicObject.const(0);
                 const y = await this.evaluateAny(node.value.secondary, options);
                 values.push(x, y);
             } else {
                 const x = await this.evaluateAny(node.value, options);
-                values.push(x, Value.const(0));
+                values.push(x, AlgebraicObject.const(0));
             }
         }
 
-        let frequency = Value.const(1);
+        let frequency = AlgebraicObject.const(1);
         if (node.frequency) {
             if (this.ctx.getConfigProperty(ConfigProperty.FrequencySetting) === FrequencySetting.FreqOff) throw new SyntaxError("Frequency is not enabled");
             frequency = await this.evaluateAny(node.frequency, options)
         }
 
         const lineNumber = this.ctx.table.newLine(...values, frequency);
-        return Value.const(lineNumber);
+        return AlgebraicObject.const(lineNumber);
     }
 
     private async evaluateIfStatement(node: IfStatementNode, options: EvaluateOptions) {
@@ -499,14 +507,13 @@ export class Interpreter {
     private evaluateNumericLiteral(node: NumericLiteralNode, options: EvaluateOptions) {
         const value = ConversionUtils.escapeHex(node.value);
         const base = options.base ?? this.ctx.getModeProperty("numberBase");
-        const based = ConversionUtils.toBase(new Value(nerdamer(value), ValueNumericType.Decimal), base, NumberBase.Dec);
-        this.ctx.validateRange(based);
+        const based = ConversionUtils.toBase(new AlgebraicObject(nerdamer(value), NumericRepresentation.Decimal), base, NumberBase.Dec);
         return based;
     }
 
     private async evaluateSymbol(node: SymbolNode, options: EvaluateOptions) {
-        if (options.preserveX && node.name === "X") return Value.const("X");
-        if (node.name === "i") return Value.const("i");
+        if (options.preserveX && node.name === "X") return AlgebraicObject.const("X");
+        if (node.name === "i") return AlgebraicObject.const("i");
 
         const constant = getConstant(node.name);
         if (constant) return constant.value;

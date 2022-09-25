@@ -1,8 +1,8 @@
-import { NamedCalculation } from "../parsing/tokens";
-import { MathError } from "./errors";
-import { M } from "./math";
-import { Table } from "./table";
-import { Value, zero } from "./value";
+import { NamedCalculation } from "../../parsing/tokens";
+import { MathError } from "../errors";
+import { M } from "../math";
+import { Table } from "../table";
+import { AlgebraicObject, zero } from "../value";
 
 export enum Regression {
     SingleVar,
@@ -18,7 +18,7 @@ export enum Regression {
 }
 
 export namespace StatUtils {
-    export function summary(data: Table, calculation: NamedCalculation): Value {
+    export function summary(data: Table, calculation: NamedCalculation): AlgebraicObject {
         switch (calculation) {
             case NamedCalculation.StatXSquareSum:
                 return XSquareSum(data);
@@ -78,7 +78,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatXSquareSum);
         if (cache) return cache;
         
-        let Σx2 = Value.const(0);
+        let Σx2 = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σx2 = Σx2.plus(x.pow(2));
@@ -92,7 +92,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatXSum);
         if (cache) return cache;
 
-        let Σx = Value.const(0);
+        let Σx = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σx = Σx.plus(x);
@@ -106,7 +106,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatCount);
         if (cache) return cache;
 
-        let n = Value.const(0);
+        let n = AlgebraicObject.const(0);
 
         for (const [] of data.values()) {
             n = n.plus(1);
@@ -120,7 +120,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatYSquareSum);
         if (cache) return cache;
 
-        let Σy2 = Value.const(0);
+        let Σy2 = AlgebraicObject.const(0);
 
         for (const [, y] of data.values()) {
             Σy2 = Σy2.plus(y.pow(2));
@@ -134,7 +134,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatYSum);
         if (cache) return cache;
 
-        let Σy = Value.const(0);
+        let Σy = AlgebraicObject.const(0);
 
         for (const [, y] of data.values()) {
             Σy = Σy.plus(y);
@@ -148,7 +148,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatXYSum);
         if (cache) return cache;
 
-        let Σxy = Value.const(0);
+        let Σxy = AlgebraicObject.const(0);
 
         for (const [x, y] of data.values()) {
             Σxy = Σxy.plus(x.times(y));
@@ -162,7 +162,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatXSquareYSum);
         if (cache) return cache;
 
-        let Σx2y = Value.const(0);
+        let Σx2y = AlgebraicObject.const(0);
 
         for (const [x, y] of data.values()) {
             Σx2y = Σx2y.plus(x.pow(2).times(y));
@@ -176,7 +176,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatXCubeSum);
         if (cache) return cache;
 
-        let Σx3 = Value.const(0);
+        let Σx3 = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σx3 = Σx3.plus(x.pow(3));
@@ -190,7 +190,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatXFourthPowerSum);
         if (cache) return cache;
 
-        let Σx4 = Value.const(0);
+        let Σx4 = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σx4 = Σx4.plus(x.pow(4));
@@ -355,7 +355,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣlnx);
         if (cache) return cache;
 
-        let Πx = Value.const(1);
+        let Πx = AlgebraicObject.const(1);
 
         for (const [x] of data.values()) {
             Πx = Πx.times(x);
@@ -371,7 +371,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣlnx2);
         if (cache) return cache;
         
-        let Σlnx2 = Value.const(0);
+        let Σlnx2 = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σlnx2 = Σlnx2.plus(M.ln(x).pow(2));
@@ -385,7 +385,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣlny);
         if (cache) return cache;
         
-        let Πy = Value.const(1);
+        let Πy = AlgebraicObject.const(1);
 
         for (const [, y] of data.values()) {
             Πy = Πy.times(y);
@@ -401,7 +401,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣlny2);
         if (cache) return cache;
         
-        let Σlny2 = Value.const(0);
+        let Σlny2 = AlgebraicObject.const(0);
 
         for (const [, y] of data.values()) {
             Σlny2 = Σlny2.plus(M.ln(y).pow(2));
@@ -415,7 +415,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣylnx);
         if (cache) return cache;
         
-        let Σxlny = Value.const(0);
+        let Σxlny = AlgebraicObject.const(0);
 
         for (const [x, y] of data.values()) {
             Σxlny = Σxlny.plus(x.times(M.ln(y)));
@@ -429,7 +429,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣylnx);
         if (cache) return cache;
         
-        let Σylnx = Value.const(0);
+        let Σylnx = AlgebraicObject.const(0);
 
         for (const [x, y] of data.values()) {
             Σylnx = Σylnx.plus(y.times(M.ln(x)));
@@ -443,7 +443,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣlnxlny);
         if (cache) return cache;
         
-        let Σlnxlny = Value.const(0);
+        let Σlnxlny = AlgebraicObject.const(0);
 
         for (const [x, y] of data.values()) {
             Σlnxlny = Σlnxlny.plus(M.ln(x).times(M.ln(y)));
@@ -457,7 +457,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣ1Overx);
         if (cache) return cache;
         
-        let Σ1Overx = Value.const(0);
+        let Σ1Overx = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σ1Overx = Σ1Overx.plus(x.pow(-1));
@@ -471,7 +471,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣ1Overx2);
         if (cache) return cache;
 
-        let Σ1Overx2 = Value.const(0);
+        let Σ1Overx2 = AlgebraicObject.const(0);
 
         for (const [x] of data.values()) {
             Σ1Overx2 = Σ1Overx2.plus(x.pow(-2));
@@ -485,7 +485,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatInternalΣyOverx);
         if (cache) return cache;
         
-        let ΣyOverx = Value.const(0);
+        let ΣyOverx = AlgebraicObject.const(0);
 
         for (const [x, y] of data.values()) {
             ΣyOverx = ΣyOverx.plus(y.div(x));
@@ -499,7 +499,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatCoefficientA);
         if (cache) return cache;
 
-        let a!: Value;
+        let a!: AlgebraicObject;
 
         switch (data.regression) {
             case Regression.Linear: {
@@ -577,7 +577,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatCoefficientB);
         if (cache) return cache;
 
-        let b!: Value;
+        let b!: AlgebraicObject;
 
         switch (data.regression) {
             case Regression.Linear: {
@@ -681,7 +681,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatCoefficientR);
         if (cache) return cache;
 
-        let r!: Value;
+        let r!: AlgebraicObject;
 
         switch (data.regression) {
             case Regression.Linear: {
@@ -786,10 +786,10 @@ export namespace StatUtils {
         return data.setCache(NamedCalculation.StatCoefficientR, r);
     }
 
-    export function estimatedX(data: Table, y: Value) {
+    export function estimatedX(data: Table, y: AlgebraicObject) {
         data.validateLines();
 
-        let x!: Value;
+        let x!: AlgebraicObject;
         const a = StatUtils.coefficientA(data);
         const b = StatUtils.coefficientB(data);
 
@@ -830,10 +830,10 @@ export namespace StatUtils {
         return x;
     }
 
-    export function estimatedY(data: Table, x: Value) {
+    export function estimatedY(data: Table, x: AlgebraicObject) {
         data.validateLines();
 
-        let y!: Value;
+        let y!: AlgebraicObject;
         const a = StatUtils.coefficientA(data);
         const b = StatUtils.coefficientB(data);
 
@@ -872,10 +872,10 @@ export namespace StatUtils {
         return y;
     }
 
-    export function estimatedX2(data: Table, y: Value) {
+    export function estimatedX2(data: Table, y: AlgebraicObject) {
         data.validateLines();
 
-        let x!: Value;2
+        let x!: AlgebraicObject;2
         const a = StatUtils.coefficientA(data);
         const b = StatUtils.coefficientB(data);
 
@@ -899,7 +899,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatMinX);
         if (cache) return cache;
 
-        let min!: Value;
+        let min!: AlgebraicObject;
 
         for (const [x] of data.values()) {
             if (!min || x.lt(min)) min = x;
@@ -913,7 +913,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatMaxX);
         if (cache) return cache;
 
-        let max!: Value;
+        let max!: AlgebraicObject;
 
         for (const [x] of data.values()) {
             if (!max || x.gt(max)) max = x;
@@ -927,7 +927,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatMinY);
         if (cache) return cache;
 
-        let min!: Value;
+        let min!: AlgebraicObject;
 
         for (const [, y] of data.values()) {
             if (!min || y.lt(min)) min = y;
@@ -941,7 +941,7 @@ export namespace StatUtils {
         const cache = data.getCache(NamedCalculation.StatMaxY);
         if (cache) return cache;
 
-        let max!: Value;
+        let max!: AlgebraicObject;
 
         for (const [, y] of data.values()) {
             if (!max || y.gt(max)) max = y;

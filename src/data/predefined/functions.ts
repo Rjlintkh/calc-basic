@@ -1,14 +1,16 @@
-import { Context } from "../interpretation/context";
-import { ArgumentError, MathError } from "./errors";
-import { M } from "./math";
-import { Angle, Complex, Expression, Integer, Param, Real } from "./param";
-import { Value } from "./value";
+import { Context } from "../../interpretation/context";
+import { ArgumentError, MathError } from "../errors";
+import { M } from "../math";
+import { Angle, Complex, Expression, Integer, Param, Real } from "../param";
+import { AlgebraicObject } from "../value";
 
 export class WrappedFunction {
-    constructor(public identifier: string, public params: (typeof Param | [typeof Param])[], public result: typeof Param, private func: (this: Context, ...args: Value[]) => Value) {
+    arity: [number, number];
+    constructor(public identifier: string, public params: (typeof Param | [typeof Param])[], public result: typeof Param, private func: (this: Context, ...args: AlgebraicObject[]) => AlgebraicObject) {
+        this.arity = this.computeArity();
     }
 
-    call(ctx: Context, ...args: Value[]) {
+    call(ctx: Context, ...args: AlgebraicObject[]) {
         for (const [i, arg] of args.entries()) {
             let Type = this.params[i];
             if (Array.isArray(Type)) {
@@ -23,7 +25,7 @@ export class WrappedFunction {
         return retval;
     }
 
-    getArgLen(): [number, number] {
+    private computeArity(): [number, number] {
         let min = 0;
         let max = 0;
         let optionalStarted = false;
@@ -45,7 +47,7 @@ export class WrappedFunction {
     }
 
     mustRequireParthenesis() {
-        return this.getArgLen()[0] > 1;
+        return this.arity[0] > 1;
     }
 }
 

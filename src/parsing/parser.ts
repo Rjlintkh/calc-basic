@@ -1,5 +1,5 @@
 import { ArgumentError } from "../data/errors";
-import { getFunction, WrappedFunction } from "../data/functions";
+import { getFunction, WrappedFunction } from "../data/predefined/functions";
 import { Lexer } from "./lexer";
 import { BaseNode, BinaryExpressionNode, BreakStatementNode, CallExpressionNode, CommandNode, DataInputNode, ErrorNode, ForStatementNode, FrequencyNode, IfEndStatementNode, IfStatementNode, Implicity, isNumerical, isNumericSexagesimal, NextStatementNode, NumericLiteralNode, PairedDatumNode, ProgramNode, StringLiteralNode, SymbolNode, TernaryExpressionNode, UnaryExpressionNode, UnconditionalJumpStatementNode, VariableAssignmentNode, WhileEndStatementNode, WhileStatementNode } from "./nodes";
 import { Delimiters, Keyword, Operators, Token, TokenType } from "./tokens";
@@ -615,7 +615,7 @@ export class Parser {
 
     private parseArgumentList(func: WrappedFunction) {
         if (func.mustRequireParthenesis() || this.lookahead?.type === TokenType.LeftParenthesis) {
-            const [minLen, maxLen] = func.getArgLen();
+            const [minLen, maxLen] = func.arity;
             this.eat(TokenType.LeftParenthesis);
             this.argumentListNest++;
             const args: BaseNode[] = [this.parseExpression()];

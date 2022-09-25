@@ -1,19 +1,19 @@
 import nerdamer = require("nerdamer");
 import { MathError } from "./errors";
-import { M } from "./math";
+import { isRational, M } from "./math";
 
-const cache = new Map<string, Value>();
+const cache = new Map<string, AlgebraicObject>();
 
-function anyIsNegative(x: Value | number) {
-    return x instanceof Value ? x.isNegative() : x < 0;
+function anyIsNegative(x: AlgebraicObject | number) {
+    return x instanceof AlgebraicObject ? x.isNegative() : x < 0;
 }
 
-function anyIsInteger(x: Value | number) {
-    return x instanceof Value ? x.isInteger() : Number.isInteger(x);
+function anyIsInteger(x: AlgebraicObject | number) {
+    return x instanceof AlgebraicObject ? x.isInteger() : Number.isInteger(x);
 }
 
-function anyIsComplex(x: Value | number): x is Value {
-    return x instanceof Value ? x.isComplex() :false;
+function anyIsComplex(x: AlgebraicObject | number): x is AlgebraicObject {
+    return x instanceof AlgebraicObject ? x.isComplex() :false;
 }
 
 function isMatrix(x: nerdamer.Expression) {
@@ -54,106 +54,147 @@ function fixNerdamerRidiculouslyLargeMantissa(x: nerdamer.Expression) {
     // console.info(`Fixed, (${numLen} + ${denLen})`);
 }
 
-export enum ValueObjectType {
-    Real,
-    Complex,
-    Vector,
-    Matrix,
+export enum Field {
+    Real = "R",
+    Complex = "C",
+    Vector = "V",
+    Matrix = "M",
 
-    DummyVariable,
+    DummyVariable = "X",
 
-    Multi,
-    Error,
+    Multi = "+",
+    Error = "!",
 }
 
-export enum ValueNumericType {
-    Decimal,
-    Fraction,
-    Sexagesimal
+export enum NumericRepresentation {
+    Integer = "Z",
+    Decimal = "D",
+    Fraction = "F",
+    Sexagesimal = "S",
 }
 
-export class Value {
-    static const(value: Value | number | string, numericType = ValueNumericType.Decimal): Value {
-        if (value instanceof Value) return value;
+export class AlgebraicObject {
+    static const(value: AlgebraicObject | number | string, numericType = NumericRepresentation.Decimal): AlgebraicObject {
+        if (value instanceof AlgebraicObject) return value;
         
         const key = value+"";
         const cached = cache.get(key);
         if (cached != null) return cached;
-        const newValue = new Value(nerdamer(key), numericType);
+        const newValue = new AlgebraicObject(nerdamer(key), numericType);
         cache.set(key, newValue);
         return newValue;
     }
 
-    static objectType({value, secondary, tertiary}: Value) {
-        if (secondary || tertiary) return ValueObjectType.Multi;
+    static inferField({value, additionalValues}: AlgebraicObject) {
+        if (additionalValues) return Field.Multi;
 
         const evaluated = value.evaluate();
 
-        if (evaluated.isNumber()) return ValueObjectType.Real;
-        if (evaluated.isImaginary()) return ValueObjectType.Complex;
-        if (isVector(evaluated)) return ValueObjectType.Vector;
-        if (isMatrix(evaluated)) return ValueObjectType.Matrix;
+        if (evaluated.isNumber()) return Field.Real;
+        if (evaluated.isImaginary()) return Field.Complex;
+        if (isVector(evaluated)) return Field.Vector;
+        if (isMatrix(evaluated)) return Field.Matrix;
 
-        if (containsDummyVariable(evaluated)) return ValueObjectType.DummyVariable;
+        if (containsDummyVariable(evaluated)) return Field.DummyVariable;
         
-        if (isError(evaluated)) return ValueObjectType.Error;
+        if (isError(evaluated)) return Field.Error;
         
         throw new Error(`Unsupported mathematical object: ${value.text()}`);
     }
 
-    static numericType(value: Value) {
-        if (value.isFraction() && M.denominator(value).eq(1)) return ValueNumericType.Decimal;
-        return value.numericType;
+    static validateFormatAgreement(value: AlgebraicObject) {
+        let format = value.format;
+
+        if (format === NumericRepresentation.Fraction && M.denominator(value).eq(1)) format = NumericRepresentation.Decimal;
+
+        if (format === NumericRepresentation.Sexagesimal) {
+            const abs = Math.abs(value.number());
+            if (abs >= 1e7) format = NumericRepresentation.Decimal;
+            return format; // skip integer check
+        }
+        
+        const Z = Number.isInteger(+value.text());
+        if (Z) return NumericRepresentation.Integer;
+        else if (format === NumericRepresentation.Integer) format = NumericRepresentation.Decimal;
+        
+        return format;
     }
 
-    secondary?: Value;
-    tertiary?: Value;
+    value: nerdamer.Expression;
 
-    objectType: ValueObjectType;
-    numericType: ValueNumericType;
+    field: Field;
+    tupleFormats = new Array<NumericRepresentation>();
+    get format() {
+        return this.tupleFormats[0];
+    }
+    set format(value: NumericRepresentation) {
+        this.tupleFormats[0] = value;
+    }
 
-    constructor(public value: nerdamer.Expression, numericType = ValueNumericType.Decimal) {
+    additionalValues?: AlgebraicObject[];
+
+    addAdditionalValue(value: AlgebraicObject) {
+        if (!this.additionalValues) this.additionalValues = [];
+        this.additionalValues.push(value);
+    }
+
+    constructor(value: nerdamer.Expression, ...formats: NumericRepresentation[]) {
+        this.value = value;
         fixNerdamerRidiculouslyLargeMantissa(this.value);
-        this.objectType = Value.objectType(this);
+        this.field = AlgebraicObject.inferField(this);
         
-        this.numericType = numericType ?? ValueNumericType.Decimal;
-        this.numericType = Value.numericType(this);
+        this.tupleFormats = formats.length ? formats : [NumericRepresentation.Decimal];
+        if (this.isComplex()) {
+            console.log({
+                value: this.value.text(),
+                c: M.im(this),
+                tupleFormats: this.tupleFormats,
+            })
+            this.tupleFormats = [M.re(this).format, M.im(this).format];
+
+        } else {
+            this.format = AlgebraicObject.validateFormatAgreement(this);
+        }
     }
 
     isNaN() {
-        return this.objectType === ValueObjectType.Error;
+        return this.field === Field.Error;
     }
 
     isError() {
-        return this.objectType === ValueObjectType.Error;
+        return this.field === Field.Error;
     }
 
     isDecimal() {
-        return this.numericType === ValueNumericType.Decimal;
+        return this.format === NumericRepresentation.Decimal;
     }
 
     isFraction() {
-        return this.numericType === ValueNumericType.Fraction;
+        return this.format === NumericRepresentation.Fraction;
+    }
+
+    isRational() {
+        return isRational(this.value);
     }
     
     isSexagesimal() {
-        return this.numericType === ValueNumericType.Sexagesimal;
+        return this.format === NumericRepresentation.Sexagesimal;
     }
 
     isReal() {
-        return this.objectType === ValueObjectType.Real;
+        return this.field === Field.Real;
     }
 
     isComplex() {
-        return this.objectType === ValueObjectType.Complex;
+        return this.field === Field.Complex;
     }
 
     isVector() {
-        return this.objectType === ValueObjectType.Vector;
+        return this.field === Field.Vector;
     }
 
     isMatrix() {
-        return this.objectType === ValueObjectType.Matrix;
+        return this.field === Field.Matrix;
     }
 
     isInteger() {
@@ -168,17 +209,17 @@ export class Value {
         return this.value.lt(0);
     }
 
-    plus(rhs: Value | number) {
+    plus(rhs: AlgebraicObject | number) {
         const retval = this.value.add(rhs.valueOf());
-        return new Value(retval, Value.typeTwoTerms(this, Value.const(rhs)));
+        return new AlgebraicObject(retval, ...AlgebraicObject.typeTwoTerms(this, AlgebraicObject.const(rhs)));
     }
 
-    minus(rhs: Value | number) {
+    minus(rhs: AlgebraicObject | number) {
         const retval = this.value.subtract(rhs.valueOf());
-        return new Value(retval, Value.typeTwoTerms(this, Value.const(rhs)));
+        return new AlgebraicObject(retval, ...AlgebraicObject.typeTwoTerms(this, AlgebraicObject.const(rhs)));
     }
 
-    times(rhs: Value | number): Value {
+    times(rhs: AlgebraicObject | number): AlgebraicObject {
         if (anyIsComplex(this) && anyIsComplex(rhs)) { // Fix nerdamer bug
             const A = M.re(this);
             const B = M.im(this);
@@ -189,10 +230,10 @@ export class Value {
             return M.complex(re, im);
         }
         const retval = this.value.multiply(rhs.valueOf());
-        return new Value(retval, Value.typeSameTerm(this, Value.const(rhs)));
+        return new AlgebraicObject(retval, ...AlgebraicObject.typeSameTerm(this, AlgebraicObject.const(rhs)));
     }
 
-    div(rhs: Value | number): Value {
+    div(rhs: AlgebraicObject | number): AlgebraicObject {
         if (anyIsComplex(rhs)) { // Fix nerdamer bug
             const A = M.re(this);
             const B = M.im(this);
@@ -204,10 +245,10 @@ export class Value {
             return M.complex(re, im);
         }
         const retval = this.value.divide(rhs.valueOf());
-        return new Value(retval, Value.typeSameTerm(this, Value.const(rhs)));
+        return new AlgebraicObject(retval, ...AlgebraicObject.typeSameTerm(this, AlgebraicObject.const(rhs)));
     }
 
-    over(rhs: Value | number): Value {
+    over(rhs: AlgebraicObject | number): AlgebraicObject {
         if (anyIsComplex(rhs)) { // Fix nerdamer bug
             const A = M.re(this);
             const B = M.im(this);
@@ -219,12 +260,12 @@ export class Value {
             return M.complex(re, im);
         }
         const retval = this.value.divide(rhs.valueOf());
-        return new Value(retval, Value.fractionOutcome(this, Value.const(rhs)))
+        return new AlgebraicObject(retval, AlgebraicObject.fractionOutcome(this, AlgebraicObject.const(rhs)))
     }
 
-    pow(rhs: Value | number): Value {
+    pow(rhs: AlgebraicObject | number): AlgebraicObject {
         if (this.isComplex()) {
-            const power = Value.const(rhs);
+            const power = AlgebraicObject.const(rhs);
             if (power.eq(negOne)) {
                 return one.div(this);
             } else if (power.eq(two)) {
@@ -234,36 +275,40 @@ export class Value {
             } else throw new MathError();
         }
         const retval = this.value.pow(rhs.valueOf());
-        return new Value(retval, anyIsInteger(rhs) ? this.numericType : ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, anyIsInteger(rhs) ? this.format : NumericRepresentation.Decimal);
     }
 
-    root(rhs: Value | number) {
+    root(rhs: AlgebraicObject | number) {
         if (this.isComplex()) {
             throw new MathError();
         }
         const pow = one.div(rhs);
         const retval = this.value.pow(pow.value);
-        return new Value(retval, anyIsInteger(rhs) ? this.numericType : ValueNumericType.Decimal);
+        return new AlgebraicObject(retval, anyIsInteger(rhs) ? this.format : NumericRepresentation.Decimal);
     }
 
-    eq(rhs: Value | number) {
+    eq(rhs: AlgebraicObject | number) {
         return this.value.eq(rhs.valueOf());
     }
 
-    gt(rhs: Value | number) {
+    gt(rhs: AlgebraicObject | number) {
         return this.value.gt(rhs.valueOf());
     }
 
-    lt(rhs: Value | number) {
+    lt(rhs: AlgebraicObject | number) {
         return this.value.lt(rhs.valueOf());
     }
 
-    gte(rhs: Value | number) {
+    gte(rhs: AlgebraicObject | number) {
         return this.value.gte(rhs.valueOf());
     }
 
-    lte(rhs: Value | number) {
+    lte(rhs: AlgebraicObject | number) {
         return this.value.lte(rhs.valueOf());
+    }
+
+    abs() {
+        return M.abs(this);
     }
 
     text(): string {
@@ -274,45 +319,82 @@ export class Value {
         return this.value.evaluate();
     }
 
+    private cacheNum: number | undefined;
+
+    number() {
+        if (this.cacheNum != null) return this.cacheNum;
+        return this.cacheNum = <number>this.value.evaluate().valueOf();
+    }
+
+    digits() {
+        return <string>(this.value.evaluate().text as any)("decimals", 100);
+    }
+
     valueOf() {
         return this.value;
     }
 
-    static fractionOutcome(lhs: Value, rhs: Value): ValueNumericType {
+    static fractionOutcome(lhs: AlgebraicObject, rhs: AlgebraicObject): NumericRepresentation {
         const lhsOk = lhs.isFraction() || lhs.isInteger();
         const rhsOk = rhs.isFraction() || rhs.isInteger();
-        return lhsOk && rhsOk ? ValueNumericType.Fraction : ValueNumericType.Decimal;
+        return lhsOk && rhsOk ? NumericRepresentation.Fraction : NumericRepresentation.Decimal;
     }
 
-    static typeTwoTerms(lhs: Value, rhs: Value): ValueNumericType {
-        // TODO: Optimize this
-        const lhsReal = lhs.isReal(), rhsReal = rhs.isReal();
-        const lhsDecimal = lhs.isDecimal(), rhsDecimal = rhs.isDecimal();
-        const lhsFraction = lhs.isFraction(), rhsFraction = rhs.isFraction();
-        const lhsInteger = lhs.isInteger(), rhsInteger = rhs.isInteger();
-        const lhsSexagesimal = lhs.isSexagesimal(), rhsSexagesimal = rhs.isSexagesimal();
-        if (lhsReal && rhsReal) {
-            if ((lhsDecimal && !lhsInteger) || (rhsDecimal && !rhsInteger)) return ValueNumericType.Decimal;
-            if ((lhsFraction || lhsInteger) && rhsFraction) return ValueNumericType.Fraction;
-            if (lhsFraction && (rhsFraction || rhsInteger)) return ValueNumericType.Fraction;
-            if (lhsSexagesimal || lhsSexagesimal) {
-                if (lhsSexagesimal && rhsSexagesimal) return ValueNumericType.Sexagesimal;
-                return ValueNumericType.Decimal;
-            }
-        } else {
+    static typeTwoTerms(lhs: AlgebraicObject, rhs: AlgebraicObject): NumericRepresentation[] {
+        const Z = NumericRepresentation.Integer;
+        const D = NumericRepresentation.Decimal;
+        const F = NumericRepresentation.Fraction;
+        const S = NumericRepresentation.Sexagesimal;
+        
+        const map: Record<string, NumericRepresentation[]> = { // Additive Typing
+            "Z Z": [Z], // 1 + 1 = 2
+            "Z D": [D], // 1 + 0.5 = 1.5
+            "Z F": [F], // 1 + 1/2 = 3/2
+            "Z S": [D], // 1 + 5'6' = 6.1
+
+            "D Z": [D], // 1.1 + 1 = 2.1
+            "D D": [D], // 1.1 + 1.2 = 2.3
+            "D F": [D], // 1.1 + 1/2 = 1.6
+            "D S": [D], // 1.1 + 5'6' = 6.2
+
+            "F Z": [F], // 1/2 + 1 = 3/2
+            "F D": [D], // 1/2 + 1.1 = 1.6
+            "F F": [F], // 2/3 + 2/3 = 4/3
+            "F S": [D], // 1/2 + 5'6' = 5.6
+            
+            "S Z": [D], // 5'6' + 1 = 6.1
+            "S D": [D], // 5'6' + 1.1 = 6.2
+            "S F": [D], // 5'6' + 1/2 = 5.6
+            "S S": [S], // 1'2' + 1'2' = 2'4'0
         }
-        return lhs.numericType;
+        if (lhs.isComplex() || rhs.isComplex()) {
+            const L = [lhs.tupleFormats[0], lhs.tupleFormats[1] ?? Z];
+            const R = [rhs.tupleFormats[0], rhs.tupleFormats[1] ?? Z];
+
+            const key1 = `${L[0]} ${R[0]}`;
+            const key2 = `${L[1]} ${R[1]}`;
+
+            console.log(map[key1][0], map[key2][0]);
+            return [map[key1][0], map[key2][0]];
+        } else {
+            const L = lhs.format[0];
+            const R = rhs.format[0];
+
+            const key = `${L} ${R}`;
+            return map[key];
+        }
     }
 
-    static typeSameTerm(lhs: Value, rhs: Value) {
+    static typeSameTerm(lhs: AlgebraicObject, rhs: AlgebraicObject) {
         const lhsSexagesimal = lhs.isSexagesimal(), rhsSexagesimal = rhs.isSexagesimal();
-        if (lhsSexagesimal || rhsSexagesimal) return ValueNumericType.Sexagesimal;
-        return Value.typeTwoTerms(lhs, rhs);
+        if (lhsSexagesimal || rhsSexagesimal) return [NumericRepresentation.Sexagesimal];
+        return AlgebraicObject.typeTwoTerms(lhs, rhs);
     }
 }
 
-export const negOne = Value.const(-1);
-export const zero = Value.const(0);
-export const one = Value.const(1);
-export const two = Value.const(2);
-export const three = Value.const(3);
+export const negOne = AlgebraicObject.const(-1);
+export const zero = AlgebraicObject.const(0);
+export const one = AlgebraicObject.const(1);
+export const two = AlgebraicObject.const(2);
+export const three = AlgebraicObject.const(3);
+export const pi = AlgebraicObject.const("pi");

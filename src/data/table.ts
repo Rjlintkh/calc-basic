@@ -1,20 +1,20 @@
 import { NamedCalculation } from "../parsing/tokens";
 import { MathError } from "./errors";
 import { M } from "./math";
-import { Regression } from "./stat_utils";
-import { Value } from "./value";
+import { Regression } from "./utils/stat_utils";
+import { AlgebraicObject } from "./value";
 
 export interface Line {
-    frequency: Value;
+    frequency: AlgebraicObject;
 }
 
 export interface SingleVarLine extends Line {
-    x: Value;
+    x: AlgebraicObject;
 }
 
 export interface PairedVarLine extends Line {
-    x: Value;
-    y: Value;
+    x: AlgebraicObject;
+    y: AlgebraicObject;
 }
 
 export type FormattedLine = {
@@ -27,7 +27,7 @@ export type FormattedTable = FormattedLine[];
 export abstract class Table {
     protected lines = new Array<Line>();
 
-    protected calculationCache: Partial<Record<NamedCalculation, Value>> = {};
+    protected calculationCache: Partial<Record<NamedCalculation, AlgebraicObject>> = {};
     
     regression = Regression.Unknown;
 
@@ -42,7 +42,7 @@ export abstract class Table {
         return this.calculationCache[name] ?? null;
     }
 
-    setCache(name: NamedCalculation, value: Value) {
+    setCache(name: NamedCalculation, value: AlgebraicObject) {
         this.calculationCache[name] = value;
         return value;
     }
@@ -78,7 +78,7 @@ export abstract class Table {
         }
     }
 
-    validateNumberRange(value: Value) {
+    validateNumberRange(value: AlgebraicObject) {
         const abs = M.abs(value);
         const valid = abs.lt(1e50);
         if (!valid) throw new MathError("Value is too large");
@@ -86,11 +86,11 @@ export abstract class Table {
 
     abstract maxLineNumber(frequency: boolean): number;
 
-    abstract newLine(...args: Value[]): number;
+    abstract newLine(...args: AlgebraicObject[]): number;
 
-    abstract setLineAt(lineNumber: number, ...args: Value[]): void;
+    abstract setLineAt(lineNumber: number, ...args: AlgebraicObject[]): void;
 
-    abstract values(): Generator<Value[], void, unknown>;
+    abstract values(): Generator<AlgebraicObject[], void, unknown>;
 }
 
 export class SingleVarTable extends Table {
@@ -100,7 +100,7 @@ export class SingleVarTable extends Table {
         return frequency ? 40 : 80;
     }
 
-    newLine(x: Value, frequency: Value) {
+    newLine(x: AlgebraicObject, frequency: AlgebraicObject) {
         this.validateNumberRange(x);
         const line = { x, frequency };
         this.lines.push(line);
@@ -108,7 +108,7 @@ export class SingleVarTable extends Table {
         return this.lines.length;
     }
 
-    setLineAt(lineNumber: number, x: Value, frequency: Value) {
+    setLineAt(lineNumber: number, x: AlgebraicObject, frequency: AlgebraicObject) {
         this.validateNumberRange(x);
         const line = { x, frequency };
         this.lines[lineNumber - 1] = line;
@@ -131,7 +131,7 @@ export class PairedVarTable extends Table {
         return frequency ? 26 : 40;
     }
 
-    newLine(x: Value, y: Value, frequency: Value) {
+    newLine(x: AlgebraicObject, y: AlgebraicObject, frequency: AlgebraicObject) {
         this.validateNumberRange(x);
         this.validateNumberRange(y);
         const line = { x, y, frequency };
@@ -140,7 +140,7 @@ export class PairedVarTable extends Table {
         return this.lines.length;
     }
 
-    setLineAt(lineNumber: number, x: Value, y: Value, frequency: Value) {
+    setLineAt(lineNumber: number, x: AlgebraicObject, y: AlgebraicObject, frequency: AlgebraicObject) {
         this.validateNumberRange(x);
         this.validateNumberRange(y);
         const line = { x, y, frequency };

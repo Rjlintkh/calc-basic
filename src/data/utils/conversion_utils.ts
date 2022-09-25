@@ -1,6 +1,6 @@
 import nerdamer from "nerdamer";
-import { AngleUnit, NumberBase } from "./math";
-import { Value } from "./value";
+import { AngleUnit, NumberBase } from "../math";
+import { AlgebraicObject } from "../value";
 
 function checkBase(str: string, base: NumberBase): boolean {
     switch (base) {
@@ -18,11 +18,11 @@ function checkBase(str: string, base: NumberBase): boolean {
 function halfRotation(unit: AngleUnit) {
     switch (unit) {
         case AngleUnit.Deg:
-            return Value.const(180);
+            return AlgebraicObject.const(180);
         case AngleUnit.Rad:
-            return Value.const("pi");
+            return AlgebraicObject.const("pi");
         case AngleUnit.Gra:
-            return Value.const(200);
+            return AlgebraicObject.const(200);
     }
 }
 
@@ -48,7 +48,7 @@ export namespace ConversionUtils {
             .replace(/f/g, "𝗙");
     }
 
-    export function toBase(value: Value, from: NumberBase, to: NumberBase): Value {
+    export function toBase(value: AlgebraicObject, from: NumberBase, to: NumberBase): AlgebraicObject {
         if (from === to) return value;
 
         let str = value.text();
@@ -58,10 +58,10 @@ export namespace ConversionUtils {
 
         let result = parseInt(str, from).toString(to);
         
-        return new Value(nerdamer(result), value.numericType);
+        return new AlgebraicObject(nerdamer(result), value.format);
     }
 
-    export function toAngleUnit(value: Value, from: AngleUnit, to: AngleUnit): Value {
+    export function toAngleUnit(value: AlgebraicObject, from: AngleUnit, to: AngleUnit): AlgebraicObject {
         if (from === to) return value;
         return value.times(halfRotation(to)).div(halfRotation(from));
     }

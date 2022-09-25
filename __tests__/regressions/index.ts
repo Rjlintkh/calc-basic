@@ -1,5 +1,5 @@
 import { calc } from "..";
-import { Regression } from "../../src/data/stat_utils";
+import { Regression } from "../../src/data/utils/stat_utils";
 import { Context } from "../../src/interpretation/context";
 import { NamedCalculation } from "../../src/parsing/tokens";
 import { CalculationModes } from "../../src/specifications/calculation_modes";

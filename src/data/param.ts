@@ -1,52 +1,52 @@
 import { ConfigProperty } from "../interpretation/config";
 import { Context } from "../interpretation/context";
-import { ConversionUtils } from "./conversion_utils";
 import { AngleUnit } from "./math";
-import { Value } from "./value";
+import { ConversionUtils } from "./utils/conversion_utils";
+import { AlgebraicObject } from "./value";
 
 export class Param {
-    validate(v: Value, ctx: Context): boolean {
+    validate(v: AlgebraicObject, ctx: Context): boolean {
         return true;
     }
 
-    convertArg(v: Value, ctx: Context): Value {
+    convertArg(v: AlgebraicObject, ctx: Context): AlgebraicObject {
         return v;
     }
 
-    convertResult(v: Value, ctx: Context): Value {
+    convertResult(v: AlgebraicObject, ctx: Context): AlgebraicObject {
         return v;
     }
 }
 
 export class Complex extends Param {
-    validate(v: Value, ctx: Context) {
+    validate(v: AlgebraicObject, ctx: Context) {
         return v.isReal() || (v.isComplex() && ctx.getModeProperty("allowImaginary"));
     }
 }
 
 export class Real extends Param {
-    validate(v: Value) {
+    validate(v: AlgebraicObject) {
         return v.isReal();
     }
 }
 
 export class Integer extends Param {
-    validate(v: Value) {
+    validate(v: AlgebraicObject) {
         return v.isReal() && v.isInteger();
     }
 }
 
 export class Angle extends Param {
-    validate(v: Value) {
+    validate(v: AlgebraicObject) {
         if (v.isComplex()) return false;
         return true;
     }
     /** Convert to radians */
-    convertArg(v: Value, ctx: Context) {
+    convertArg(v: AlgebraicObject, ctx: Context) {
         return ConversionUtils.toAngleUnit(v, ctx.getConfigProperty(ConfigProperty.AngleUnit), AngleUnit.Rad);
     }
     /** Convert from radians */
-    convertResult(v: Value, ctx: Context) {
+    convertResult(v: AlgebraicObject, ctx: Context) {
         return ConversionUtils.toAngleUnit(v, AngleUnit.Rad, ctx.getConfigProperty(ConfigProperty.AngleUnit));
     }
 }

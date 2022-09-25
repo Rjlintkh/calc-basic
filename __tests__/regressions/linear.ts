@@ -1,6 +1,6 @@
 import { regressionCtx } from ".";
 import { calc } from "..";
-import { Regression } from "../../src/data/stat_utils";
+import { Regression } from "../../src/data/utils/stat_utils";
 import { NamedCalculation } from "../../src/parsing/tokens";
 
 describe("Performing Paired-variable Statistical Calculations", () => {
