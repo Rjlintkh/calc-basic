@@ -1,4 +1,5 @@
 import { NamedCalculation } from "../parsing/tokens";
+import { Capabilities } from "../specifications/capabilities";
 import { MathError } from "./errors";
 import { M } from "./math";
 import { Regression } from "./utils/stat_utils";
@@ -97,7 +98,7 @@ export class SingleVarTable extends Table {
     protected lines = new Array<SingleVarLine>();
 
     maxLineNumber(frequency: boolean): number {
-        return frequency ? 40 : 80;
+        return frequency ? Capabilities.SingleVarTableMaxRowsFreq : Capabilities.SingleVarTableMaxRows;
     }
 
     newLine(x: AlgebraicObject, frequency: AlgebraicObject) {
@@ -128,7 +129,7 @@ export class PairedVarTable extends Table {
     protected lines = new Array<PairedVarLine>();
 
     maxLineNumber(frequency: boolean): number {
-        return frequency ? 26 : 40;
+        return frequency ? Capabilities.PairedVarTableMaxRowsFreq : Capabilities.PairedVarTableMaxRows;
     }
 
     newLine(x: AlgebraicObject, y: AlgebraicObject, frequency: AlgebraicObject) {

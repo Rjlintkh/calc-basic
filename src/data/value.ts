@@ -145,13 +145,7 @@ export class AlgebraicObject {
         
         this.tupleFormats = formats.length ? formats : [NumericRepresentation.Decimal];
         if (this.isComplex()) {
-            console.log({
-                value: this.value.text(),
-                c: M.im(this),
-                tupleFormats: this.tupleFormats,
-            })
             this.tupleFormats = [M.re(this).format, M.im(this).format];
-
         } else {
             this.format = AlgebraicObject.validateFormatAgreement(this);
         }
@@ -374,7 +368,6 @@ export class AlgebraicObject {
             const key1 = `${L[0]} ${R[0]}`;
             const key2 = `${L[1]} ${R[1]}`;
 
-            console.log(map[key1][0], map[key2][0]);
             return [map[key1][0], map[key2][0]];
         } else {
             const L = lhs.format[0];

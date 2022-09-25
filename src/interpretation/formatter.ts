@@ -335,6 +335,10 @@ export class Formatter {
         } else {
             raw.numerator = num.digits();
         }
+        if (raw.numerator[0] === "-") {
+            raw.prefix = "-";
+            raw.numerator = raw.numerator.slice(1);
+        }
         raw.denominator = den.digits();
         return raw;
     }

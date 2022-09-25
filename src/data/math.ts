@@ -1,4 +1,5 @@
 import nerdamer = require("nerdamer");
+import { Capabilities } from "../specifications/capabilities";
 import { ArgumentError, MathError } from "./errors";
 import { AlgebraicObject, Field, NumericRepresentation } from "./value";
 // @ts-ignore
@@ -22,9 +23,8 @@ export function isRational(q: nerdamer.Expression): boolean {
     }
     const numerator = nerdamerICall<nerdamer.Expression>(q, "numerator").text();
     const denominator = nerdamerICall<nerdamer.Expression>(q, "denominator").text();
-    // fraction < 10
-    // mixed < 9
-    if ((numerator.length + denominator.length) >= 10) return false;
+    
+    if ((numerator.length + 1 + denominator.length) > Capabilities.MaxFractionDigits) return false;
     return true;
 }
 
@@ -165,20 +165,20 @@ export namespace M {
     }
     export function complex(a: AlgebraicObject, b: AlgebraicObject) {
         const retval = nerdamer(`${a.text()}+${b.text()}i`);
-        return new AlgebraicObject(retval, a.format);
+        return new AlgebraicObject(retval, a.format, b.format);
     }
     export function conjg(a: AlgebraicObject) {
         if (a.isComplex()) {
             const re = nerdamerCall("realpart", a.value);
             const im = nerdamerCall("imagpart", a.value);
             const retval = nerdamer(`${re}-${im}i`);
-            return new AlgebraicObject(retval, a.format);
+            return new AlgebraicObject(retval, ...a.tupleFormats);
         }
         return new AlgebraicObject(a.value, a.format);
     }
     export function arg(a: AlgebraicObject) {
         const retval = nerdamerCall("arg", a.value);
-        return new AlgebraicObject(retval, a.format);
+        return new AlgebraicObject(retval, NumericRepresentation.Decimal);
     }
 
     export function or(a: AlgebraicObject, b: AlgebraicObject) {
