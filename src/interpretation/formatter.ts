@@ -443,7 +443,7 @@ export class Formatter {
             }
             
             if (/[1-9]/.test(d)) {
-                if (integer.length + decimals.length + zeros.length >= 10) break; // enough digits
+                if (integer.length + decimals.length + zeros.length >= 11) break; // enough digits, preserve one more for rounding
                 
                 decimals += zeros;
                 zeros = "";
@@ -463,7 +463,9 @@ export class Formatter {
 
         raw.exponent = (oldDPPos - newDPPos).toString();
         raw.integer = integer;
-        if (!alwaysInteger) raw.decimals = decimals;
+        if (!alwaysInteger) {
+            raw.decimals = this.trim(decimals, 9);
+        }
 
         return raw;
     }
