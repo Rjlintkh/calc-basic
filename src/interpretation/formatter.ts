@@ -1,7 +1,9 @@
 import { M, NumberBase } from "../data/math";
 import { FormattedTable, PairedVarLine, PairedVarTable, SingleVarLine, Table } from "../data/table";
 import { ConversionUtils } from "../data/utils/conversion_utils";
+import { MatrixUtils } from "../data/utils/matrix_utils";
 import { AlgebraicObject, Field, NumericRepresentation } from "../data/value";
+import { Capabilities } from "../specifications/capabilities";
 import { ConfigProperty, FractionDisplayFormat } from "./config";
 import { Context } from "./context";
 
@@ -92,12 +94,18 @@ export class FormattedRaw {
 }
 
 export class FormattedCluster {
+    static gridBorderSetA = "┌┐│└┘[]";
+    static gridBorderSetB = "╭╮│╰╯()";
+    
     constructor() {
 
     }
 
     a?: FormattedRaw;
     b?: FormattedRaw;
+
+    gridValues?: FormattedRaw[];
+    gridSize?: [number, number]; // rows, columns
 
     real() {
         return this.a?.stringify() ?? "";
@@ -109,6 +117,56 @@ export class FormattedCluster {
 
     complex() {
         return this.real() + this.imaginary();
+    }
+
+    gridBorder = FormattedCluster.gridBorderSetA;
+
+    grid() {
+        const borders = this.gridBorder;
+
+        let output = "";
+        if (this.gridValues) {
+            let [m, n] = this.gridSize ?? [0, 0];
+            
+            const columnLongest = new Array(n).fill(0);
+
+            for (let i = 0; i < m; i++) {
+                for (let j = 0; j < n; j++) {
+                    const str = this.gridValues[i * n + j].stringify();
+                    columnLongest[j] = Math.max(columnLongest[j], str.length);
+                }
+            }
+
+            for (let i = 1; i <= m; i++) {
+                let middle = "";
+                
+                for (let j = 1; j <= n; j++) {
+
+                    middle += this.gridValues[(i - 1) * n + j - 1].stringify().padStart(columnLongest[j - 1], " ");
+                    if (j < n) middle += " ";
+                }
+                if (m === 1) {
+                    output += `${borders[5]} ${middle} ${borders[6]}`;
+                } else if (i === 1) {
+                    output += `${borders[0]} ${middle} ${borders[1]}`;
+                } else if (i === m) {
+                    output += `${borders[3]} ${middle} ${borders[4]}`;
+                } else {
+                    output += `${borders[2]} ${middle} ${borders[2]}`;
+                }
+                if (i < m) output += "\n";
+            }
+        }
+        return output;
+    }
+
+    any() {
+        if (this.a) return this.complex();
+        if (this.gridValues) return this.grid();
+    }
+
+    stringify() {
+        return this.any();
     }
 }
 
@@ -155,10 +213,17 @@ export class Formatter {
 
                 this.output.a = this.re(re);
                 this.output.b = this.im(im);
-            }
                 break;
+            }
             case Field.Real:
                 this.output.a = this.any(data);
+                break;
+            case Field.Matrix:
+                this.output.gridValues = [];
+                this.output.gridSize = MatrixUtils.getMatrixDimensions(data);
+                for (const element of MatrixUtils.getMatrixElements(data)) {
+                    this.output.gridValues.push(this.tiny(element)); // must be real
+                }
                 break;
         }
 
@@ -349,6 +414,11 @@ export class Formatter {
         const alwaysInteger = this.ctx.getModeProperty("alwaysInteger"); // actually should always be false, but just in case
 
         let digits = data.digits();
+
+        if (digits[0] === "-") {
+            raw.prefix = "-";
+            digits = digits.slice(1);
+        }
         
         const defaultDPPos = 1; // after first digit
         let integer = "";
@@ -394,6 +464,33 @@ export class Formatter {
         raw.exponent = (oldDPPos - newDPPos).toString();
         raw.integer = integer;
         if (!alwaysInteger) raw.decimals = decimals;
+
+        return raw;
+    }
+
+    protected tiny(data: AlgebraicObject) {
+        // for grid view
+        
+        const value = data.number();
+        const abs = Math.abs(value);
+        if (abs !== 0 && (abs >= Capabilities.GridMaxDisplay || abs < Capabilities.GridMinDisplay) || value < Capabilities.GridMaxSignedDisplay) {
+            return this.scientific(data);
+        }
+
+        const raw = new FormattedRaw();
+
+        let digits = data.digits();
+
+        if (digits[0] === "-") {
+            raw.prefix = "-";
+            digits = digits.slice(1);
+        }
+
+        digits = digits.slice(0, 6); // 6 digits max
+
+        const [integer, decimals] = digits.split(".");
+        raw.integer = integer;
+        raw.decimals = decimals;
 
         return raw;
     }
