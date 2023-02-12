@@ -1,7 +1,7 @@
 import { ArgumentError } from "../data/errors";
 import { getFunction, WrappedFunction } from "../data/predefined/functions";
 import { Lexer } from "./lexer";
-import { BaseNode, BinaryExpressionNode, BreakStatementNode, CallExpressionNode, CommandNode, DataInputNode, ErrorNode, ForStatementNode, FrequencyNode, IfEndStatementNode, IfStatementNode, Implicity, isNumerical, isNumericSexagesimal, NextStatementNode, NumericLiteralNode, PairedDatumNode, ProgramNode, StringLiteralNode, SymbolNode, TernaryExpressionNode, UnaryExpressionNode, UnconditionalJumpStatementNode, VariableAssignmentNode, WhileEndStatementNode, WhileStatementNode } from "./nodes";
+import { BaseNode, BinaryExpressionNode, BreakStatementNode, CallExpressionNode, CommandNode, DataInputNode, DittoDatumNode, ErrorNode, ForStatementNode, FrequencyNode, IfEndStatementNode, IfStatementNode, Implicity, isNumerical, isNumericSexagesimal, NextStatementNode, NumericLiteralNode, PairedDatumNode, ProgramNode, StringLiteralNode, SymbolNode, TernaryExpressionNode, UnaryExpressionNode, UnconditionalJumpStatementNode, VariableAssignmentNode, WhileEndStatementNode, WhileStatementNode } from "./nodes";
 import { Delimiters, Keyword, Operators, Token, TokenType } from "./tokens";
 
 export class Parser {
@@ -276,20 +276,29 @@ export class Parser {
         return left;
     }
 
+    private parseDittoDatum() {
+        return new DittoDatumNode(
+            this.lexer.getCursorCurrent(),
+        )
+    }
+
     private parsePairedDatum() {
-        if (this.lookahead?.type === TokenType.Comma) {
+        if (this.lookahead?.type === TokenType.FrequencyOperator) { // `;3 DT`
+            return this.parseDittoDatum();
+        }
+        if (this.lookahead?.type === TokenType.Comma) { // `,2;3 DT`
             const operator = this.eat(TokenType.Comma);
             let right = this.parseLevel13Expression();
             return new PairedDatumNode(
                 operator.start,
-                undefined,
+                this.parseImplicitZero(),
                 right
             );
         }
         let left = this.parseLevel13Expression();
         if (this.argumentListNest) return left;
         // @ts-ignore
-        if (this.lookahead?.type === TokenType.Comma) {
+        if (this.lookahead?.type === TokenType.Comma) { // `1,2;3 DT`
             this.eat(TokenType.Comma);
             let right = this.parseLevel13Expression();
             return new PairedDatumNode(
@@ -698,6 +707,14 @@ export class Parser {
         return new StringLiteralNode(
             token.start,
             token.value.slice(1, -1)
+        );
+    }
+
+    private parseImplicitZero() {
+        const token = this.lexer.emptyZero();
+        return new NumericLiteralNode(
+            token.start,
+            token.value
         );
     }
 

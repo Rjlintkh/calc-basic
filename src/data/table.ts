@@ -3,7 +3,7 @@ import { Capabilities } from "../specifications/capabilities";
 import { MathError } from "./errors";
 import { M } from "./math";
 import { Regression } from "./utils/stat_utils";
-import { AlgebraicObject } from "./value";
+import { AlgebraicObject, zero } from "./value";
 
 export interface Line {
     frequency: AlgebraicObject;
@@ -33,6 +33,19 @@ export abstract class Table {
     regression = Regression.Unknown;
 
     constructor() {
+    }
+
+    abstract maxLineNumber(frequency: boolean): number;
+
+    abstract newLine(...args: AlgebraicObject[]): number;
+
+    abstract setLineAt(lineNumber: number, ...args: AlgebraicObject[]): void;
+
+    abstract values(): Generator<AlgebraicObject[], void, unknown>;
+
+    getLastLine() {
+        if (!this.lines.length) return null;
+        return this.lines[this.lines.length - 1];
     }
 
     clearCache() {
@@ -84,14 +97,6 @@ export abstract class Table {
         const valid = abs.lt(1e50);
         if (!valid) throw new MathError("Value is too large");
     }
-
-    abstract maxLineNumber(frequency: boolean): number;
-
-    abstract newLine(...args: AlgebraicObject[]): number;
-
-    abstract setLineAt(lineNumber: number, ...args: AlgebraicObject[]): void;
-
-    abstract values(): Generator<AlgebraicObject[], void, unknown>;
 }
 
 export class SingleVarTable extends Table {

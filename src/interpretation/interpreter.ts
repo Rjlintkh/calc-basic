@@ -3,11 +3,11 @@ import { GoError, MathError } from "../data/errors";
 import { AngleUnit, M, NumberBase } from "../data/math";
 import { getConstant } from "../data/predefined/constants";
 import { getFunction } from "../data/predefined/functions";
-import { PairedVarTable, SingleVarTable } from "../data/table";
+import { PairedVarLine, PairedVarTable, SingleVarLine, SingleVarTable } from "../data/table";
 import { ConversionUtils } from "../data/utils/conversion_utils";
 import { StatUtils } from "../data/utils/stat_utils";
 import { AlgebraicObject, NumericRepresentation, one, zero } from "../data/value";
-import { BaseNode, BinaryExpressionNode, BreakStatementNode, CallExpressionNode, CommandNode, DataInputNode, ErrorNode, ExpressionStatementNode, ExpressionType, ForStatementNode, IfStatementNode, Implicity, NodeType, NumericLiteralNode, PairedDatumNode, ProgramNode, SymbolNode, TernaryExpressionNode, UnaryExpressionNode, UnconditionalJumpStatementNode, VariableAssignmentNode, WhileStatementNode } from "../parsing/nodes";
+import { BaseNode, BinaryExpressionNode, BreakStatementNode, CallExpressionNode, CommandNode, DataInputNode, DittoDatumNode, ErrorNode, ExpressionStatementNode, ExpressionType, ForStatementNode, IfStatementNode, Implicity, NodeType, NumericLiteralNode, PairedDatumNode, ProgramNode, SymbolNode, TernaryExpressionNode, UnaryExpressionNode, UnconditionalJumpStatementNode, VariableAssignmentNode, WhileStatementNode } from "../parsing/nodes";
 import { Parser } from "../parsing/parser";
 import { Delimiters, Keyword, NamedCalculation, Operators } from "../parsing/tokens";
 import { ConfigProperty, FrequencySetting } from "./config";
@@ -73,7 +73,7 @@ export class Interpreter {
 
     private async error(err: Error) {
         if (!this.errorCallback) {
-            console.error("Error:", err.message);
+            console.error("Error:", err);
             return;
         }
         await this.errorCallback(err);
@@ -146,6 +146,7 @@ export class Interpreter {
                 return zero;
             case NodeType.Frequency:
             case NodeType.PairedDatum:
+            case NodeType.DittoDatum:
                 throw new SyntaxError(`${node.type} must be input as data`);
         }
     }
@@ -184,7 +185,7 @@ export class Interpreter {
         for (this.currentStatementIndex = 0; this.currentStatementIndex < body.length; this.currentStatementIndex++) {
             if (this.pendingJumps.has(this.currentStatementIndex)) {
                 const to = this.pendingJumps.get(this.currentStatementIndex)!;
-                debug && console.log(`JUMP ${this.currentStatementIndex} -> ${to}`);
+                debug && console.info(`JUMP ${this.currentStatementIndex} -> ${to}`);
                 this.currentStatementIndex = to;
             }
 
@@ -194,7 +195,7 @@ export class Interpreter {
             
             let answer = await this.evaluateAny(node, options);
              
-            debug && console.log(`EVAL ${this.currentStatementIndex}`, node);
+            debug && console.info(`EVAL ${this.currentStatementIndex}`, node);
             
             if (!node.getShouldIgnoreAnswer()) {
                 this.ctx.newAnswer(result = answer);
@@ -300,6 +301,7 @@ export class Interpreter {
                 return left.lte(right) ? one : zero;
             case "^":
                 if (left.eq(zero) && right.eq(zero)) throw new MathError();
+                if (left.isMatrix()) throw new SyntaxError();
                 return left.pow(right);
             case "ˣ√":
                 if (left.eq(zero)) throw new MathError();
@@ -410,13 +412,31 @@ export class Interpreter {
         const values = [];
         if (this.ctx.table instanceof SingleVarTable) {
             if (node.value instanceof PairedDatumNode) throw new SyntaxError("Cannot input paired data into single variable table");
-            const x = await this.evaluateAny(node.value, options);
-            values.push(x);
+            if (node.value instanceof DittoDatumNode) {
+                let lastLine = <SingleVarLine>this.ctx.table.getLastLine();
+                if (lastLine == null) {
+                    values.push(zero);
+                } else {
+                    values.push(lastLine.x);
+                }
+            } else {
+                const x = await this.evaluateAny(node.value, options);
+                values.push(x);
+            }
         } else if (this.ctx.table instanceof PairedVarTable) {
             if (node.value instanceof PairedDatumNode) {
                 const x = node.value.primary ? await this.evaluateAny(node.value.primary, options) : AlgebraicObject.const(0);
                 const y = await this.evaluateAny(node.value.secondary, options);
                 values.push(x, y);
+            } else if (node.value instanceof DittoDatumNode) {
+                let lastLine = <PairedVarLine>this.ctx.table.getLastLine();
+                if (lastLine == null) {
+                    values.push(zero);
+                    values.push(zero);
+                } else {
+                    values.push(lastLine.x);
+                    values.push(lastLine.y);
+                }
             } else {
                 const x = await this.evaluateAny(node.value, options);
                 values.push(x, AlgebraicObject.const(0));
@@ -429,8 +449,9 @@ export class Interpreter {
             frequency = await this.evaluateAny(node.frequency, options)
         }
 
-        const lineNumber = this.ctx.table.newLine(...values, frequency);
-        return AlgebraicObject.const(lineNumber);
+        this.ctx.table.newLine(...values, frequency);
+
+        return AlgebraicObject.const(values[0]);
     }
 
     private async evaluateIfStatement(node: IfStatementNode, options: EvaluateOptions) {
@@ -518,40 +539,36 @@ export class Interpreter {
         const constant = getConstant(node.name);
         if (constant) return constant.value;
 
-        for (const name of Object.values(NamedCalculation)) {
-            if (node.name === name) {
-                switch (node.name) {
-                    case NamedCalculation.RandomNumber:
-                        return M.rand();
-                    case NamedCalculation.StatXSquareSum:
-                    case NamedCalculation.StatXSum:
-                    case NamedCalculation.StatCount:
-                    case NamedCalculation.StatYSquareSum:
-                    case NamedCalculation.StatYSum:
-                    case NamedCalculation.StatXYSum:
-                    case NamedCalculation.StatXSquareYSum:
-                    case NamedCalculation.StatXCubeSum:
-                    case NamedCalculation.StatXFourthPowerSum:
-                    case NamedCalculation.StatXMean:
-                    case NamedCalculation.StatXSampleStandardDeviation:
-                    case NamedCalculation.StatXPopulationStandardDeviation:
-                    case NamedCalculation.StatYMean:
-                    case NamedCalculation.StatYSampleStandardDeviation:
-                    case NamedCalculation.StatYPopulationStandardDeviation:
-                    case NamedCalculation.StatCoefficientA:
-                    case NamedCalculation.StatCoefficientB:
-                    case NamedCalculation.StatCoefficientC:
-                    case NamedCalculation.StatCoefficientR:
-                    case NamedCalculation.StatMinX:
-                    case NamedCalculation.StatMaxX:
-                    case NamedCalculation.StatMinY:
-                    case NamedCalculation.StatMaxY:
-                        return StatUtils.summary(<PairedVarTable>this.ctx.table, node.name);
-                }
-            }
+        switch (node.name) {
+            case NamedCalculation.RandomNumber:
+                return M.rand();
+            case NamedCalculation.StatXSquareSum:
+            case NamedCalculation.StatXSum:
+            case NamedCalculation.StatCount:
+            case NamedCalculation.StatYSquareSum:
+            case NamedCalculation.StatYSum:
+            case NamedCalculation.StatXYSum:
+            case NamedCalculation.StatXSquareYSum:
+            case NamedCalculation.StatXCubeSum:
+            case NamedCalculation.StatXFourthPowerSum:
+            case NamedCalculation.StatXMean:
+            case NamedCalculation.StatXSampleStandardDeviation:
+            case NamedCalculation.StatXPopulationStandardDeviation:
+            case NamedCalculation.StatYMean:
+            case NamedCalculation.StatYSampleStandardDeviation:
+            case NamedCalculation.StatYPopulationStandardDeviation:
+            case NamedCalculation.StatCoefficientA:
+            case NamedCalculation.StatCoefficientB:
+            case NamedCalculation.StatCoefficientC:
+            case NamedCalculation.StatCoefficientR:
+            case NamedCalculation.StatMinX:
+            case NamedCalculation.StatMaxX:
+            case NamedCalculation.StatMinY:
+            case NamedCalculation.StatMaxY:
+                return StatUtils.summary(<PairedVarTable>this.ctx.table, node.name);
         }
 
-        return this.ctx.getVariable(node.name);
+        return this.ctx.getVariableAny(node.name);
     }
 
     private evaluateCommand(node: CommandNode, options: EvaluateOptions) {

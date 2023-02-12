@@ -39,6 +39,10 @@ export class Lexer {
         return this.input.length;
     }
 
+    emptyZero() {
+        return new Token(TokenType.Number, "0", this.cursor, this.cursor);
+    }
+
     isFakeRightParenthesis(index = this.cursor) {
         return this.fakedRightParentheses.includes(index);
     }
@@ -107,13 +111,15 @@ export class Lexer {
         for (const [name, charset] of Object.entries(Operators)) {
             const sliced = stream.slice(this.cursor);
             const start = this.cursor;
-            if (sliced.startsWith("d/dx")) { // hardcore d/dx
-                break;
-            }
             if (Array.isArray(charset)) {
                 for (const char of charset) {
                     if (sliced.startsWith(char)) {
                         this.cursor += char.length;
+                        if (Operators.Level5.includes(char) && !Delimiters.Number.test(stream[this.cursor])) {
+                            // hardcode level 5: numerical prefix operators
+                            this.cursor = start;
+                            break;
+                        }
                         return new Token((TokenType as any)[name], char, start, this.cursor);
                     }
                 }

@@ -18,6 +18,39 @@ describe("Performing Paired-variable Statistical Calculations", () => {
     regressionCtx.selectRegression(Regression.Linear);
     
     test("To input the following data", async () => {
+        expect(await calc(`;3 DT`, ctx => regressionCtx)).toBe("0");
+        expect(regressionCtx.format(regressionCtx.table!)).toEqual([
+            { x: "0", y: "0", freq: "3" }
+        ]);
+
+        expect(await calc(`,2;3 DT`, ctx => regressionCtx)).toBe("0");
+        expect(regressionCtx.format(regressionCtx.table!)).toEqual([
+            { x: "0", y: "0", freq: "3" },
+            { x: "0", y: "2", freq: "3" }
+        ]);
+
+        expect(await calc(`1.1,2.2;3.3 DT`, ctx => regressionCtx)).toBe("1.1");
+        expect(regressionCtx.format(regressionCtx.table!)).toEqual([
+            { x: "0", y: "0", freq: "3" },
+            { x: "0", y: "2", freq: "3" },
+            { x: "1.1", y: "2.2", freq: "3.3" }
+        ]);
+
+        expect(await calc(`;1.2 DT`, ctx => regressionCtx)).toBe("1.1"); // TODO is this 1.1 or 0? I don't know.
+        expect(regressionCtx.format(regressionCtx.table!)).toEqual([
+            { x: "0", y: "0", freq: "3" },
+            { x: "0", y: "2", freq: "3" },
+            { x: "1.1", y: "2.2", freq: "3.3" },
+            { x: "1.1", y: "2.2", freq: "1.2" }
+        ]);
+    });
+
+    test("Deleting All Sample Data", async () => {
+        await calc(`ClrStat`, ctx => regressionCtx);
+        expect(regressionCtx.format(regressionCtx.table!)).toEqual([]);
+    });
+    
+    test("To input the following data", async () => {
         await calc(`20, 3150 DT: 110, 7310 DT: 200, 8800 DT: 290, 9310 DT`, ctx => regressionCtx);
         expect(regressionCtx.format(regressionCtx.table!)).toEqual([
             { x: "20", y: "3150", freq: "1" },

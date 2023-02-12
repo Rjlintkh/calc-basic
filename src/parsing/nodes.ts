@@ -17,6 +17,7 @@ export enum NodeType {
     DataInput = "data_input",
     Frequency = "frequency",
     PairedDatum = "paired_datum",
+    DittoDatum = "ditto_datum",
     IfStatement = "if_statement",
     IfEndStatement = "if_end_statement",
     ForStatement = "for_statement",
@@ -156,6 +157,12 @@ export class FrequencyNode extends BaseNode {
 export class PairedDatumNode extends BaseNode {
     constructor(start: number, public primary: BaseNode | undefined, public secondary: BaseNode) {
         super(NodeType.PairedDatum, start);
+    }
+}
+
+export class DittoDatumNode extends BaseNode { // means "same as above"
+    constructor(start: number, ) {
+        super(NodeType.DittoDatum, start);
     }
 }
 
