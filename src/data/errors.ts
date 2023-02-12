@@ -19,6 +19,13 @@ export class GoError extends Error {
     }
 }
 
+export class DimensionError extends Error {
+    constructor(message = "") {
+        super(message);
+        this.name = "DimensionError";
+    }
+}
+
 export class DataFull extends Error {
     constructor(message = "") {
         super(message);

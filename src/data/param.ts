@@ -36,6 +36,12 @@ export class Integer extends Param {
     }
 }
 
+export class Matrix extends Param {
+    validate(v: AlgebraicObject) {
+        return v.isMatrix();
+    }
+}
+
 export class Angle extends Param {
     validate(v: AlgebraicObject) {
         if (v.isComplex()) return false;

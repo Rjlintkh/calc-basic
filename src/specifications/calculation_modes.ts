@@ -1,11 +1,11 @@
 import { NumberBase } from "../data/math";
 import { PairedVarTable, SingleVarTable, Table } from "../data/table";
 import { Regression } from "../data/utils/stat_utils";
-import { AlgebraicObject } from "../data/value";
+import { AlgebraicObject, nan } from "../data/value";
 import { Capabilities } from "./capabilities";
 
 export abstract class CalculationMode {
-    constructor(protected name: string, private desc: string) {}
+    constructor(public name: string, private desc: string) {}
 
     allowImaginary = false;
     alwaysInteger = false;
@@ -27,6 +27,11 @@ export abstract class CalculationMode {
     tableMode = false;
     createTable(): Table | null {
         return null;
+    }
+
+    specificVariables = false;
+    createSpecificVariables(): Record<string, AlgebraicObject> {
+        return {};
     }
 }
 
@@ -88,7 +93,6 @@ export class RegMode extends CalculationMode {
         super("REG", "Regression calculations");
         this.tableMode = true;
 
-
         this.createTable = () => {
             const table = new PairedVarTable();
             table.regression = this.regression;
@@ -107,6 +111,16 @@ class EqnMode extends CalculationMode {
 export class MatMode extends CalculationMode {
     constructor() {
         super("MAT", "Matrix calculations");
+        this.specificVariables = true;
+
+        this.createSpecificVariables = () => {
+            return {
+                "MatA": nan,
+                "MatB": nan,
+                "MatC": nan,
+                "MatAns": nan,
+            }
+        }
     }
 }
 
@@ -130,9 +144,9 @@ class DistMode extends CalculationMode {
     }
 }
 
-export class PgrmMode extends CalculationMode {
+export class PrgmMode extends CalculationMode {
     constructor() {
-        super("PGRM", "Program");
+        super("PRGM", "Program");
     }
 }
 
@@ -142,4 +156,5 @@ export namespace CalculationModes {
     export const Base = new BaseMode;
     export const SD = new SdMode;
     export const Reg = new RegMode;
+    export const Mat = new MatMode;
 }

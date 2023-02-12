@@ -1,7 +1,7 @@
 import { Context } from "../../interpretation/context";
 import { ArgumentError, MathError } from "../errors";
 import { M } from "../math";
-import { Angle, Complex, Expression, Integer, Param, Real } from "../param";
+import { Angle, Complex, Expression, Integer, Matrix, Param, Real } from "../param";
 import { AlgebraicObject } from "../value";
 
 export class WrappedFunction {
@@ -97,6 +97,8 @@ const predefinedFunctions = [
         this.setVariable(this.secondaryValueVariable, y);
         return x;
     }),
+    new WrappedFunction("det", [Matrix], Real, M.determinant),
+    new WrappedFunction("Ref", [Matrix], Matrix, M.rowEchelonForm),
 ];
 
 export function getFunction(identifier: string) {

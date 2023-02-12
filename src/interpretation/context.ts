@@ -13,10 +13,27 @@ export class Context {
     }
 
     private variables: Record<string, AlgebraicObject> = {};
+
+    secondaryValueVariable: "Y" | "F" = "Y";
+
     private formulaVariables: Record<string, AlgebraicObject> = {};
 
+    public modeSpecificVariables: Record<string, AlgebraicObject> = {};
+
+    public table: Table | null = null;
+
+    getVariableAny(name: string) {
+        if (this.variables[name] != null) return this.getVariable(name);
+
+        // if (this.formulaVariables[name] != null) return this.getFormulaVariable(name);
+
+        if (this.modeSpecificVariables[name] != null) return this.getModeSpecificVariable(name);
+
+        throw new ReferenceError(`${name} is not defined`);
+    }
+
     getVariable(name: string) {
-        const value = this.variables[name] ?? null;
+        const value = this.variables[name];
         if (value == null) throw new ReferenceError(`${name} is not defined`);
         return value;
     }
@@ -27,17 +44,30 @@ export class Context {
     }
 
     getFormulaVariable(name: string) {
-        const value = this.formulaVariables[name] ?? null;
+        const value = this.formulaVariables[name];
         if (value == null) throw new ReferenceError(`${name} is not defined`);
         return value;
     }
 
     setFormulaVariable(name: string, value: AlgebraicObject) {
-        this.getFormulaVariable(name);
-        this.formulaVariables[name] = value;
+        if (this.formulaVariables[name] != null){
+            this.formulaVariables[name] = value;
+        }
+        throw new ReferenceError(`${name} is not defined`);
     }
 
-    secondaryValueVariable: "Y" | "F" = "Y";
+    getModeSpecificVariable(name: string) {
+        const value = this.modeSpecificVariables[name] ?? null;
+        if (value == null) throw new ReferenceError(`${name} is not defined`);
+        return value;
+    }
+
+    setModeSpecificVariable(name: string, value: AlgebraicObject) {
+        const original = this.modeSpecificVariables[name];
+        if (original == null) throw new ReferenceError(`${name} is not defined`);
+        if (!original.sameField(value)) throw new TypeError(`Cannot assign ${value.field} to ${original.field}`);
+        this.modeSpecificVariables[name] = value;
+    }
 
     private initVariableMemory() {
         this.variables.A = zero;
@@ -48,10 +78,6 @@ export class Context {
         this.variables.F = zero;
         this.variables.X = zero;
         this.variables.Y = zero;
-
-        this.formulaVariables = {
-            
-        }
     }
 
     private initAnswerMemory() {
@@ -63,23 +89,27 @@ export class Context {
         this.variables.M = zero;
     }
 
-    initMemory() {
+    initMemory() { // ClrMemory
         this.initVariableMemory();
         this.initAnswerMemory();
         this.initIndependentMemory();
+    }
+    
+    initModeSpecificVariables() {
+        if (this.getModeProperty("specificVariables")) {
+            this.modeSpecificVariables = this.getModeProperty("createSpecificVariables")();
+        }
+    }
+
+    initTable() { // ClrStat
+        if (this.getModeProperty("tableMode")) {
+            this.table = this.getModeProperty("createTable")();
+        }
     }
 
     newAnswer(value: AlgebraicObject) {
         this.variables.PreAns = this.variables.Ans;
         this.variables.Ans = value;
-    }
-
-    public table: Table | null = null;
-
-    initTable() {
-        if (this.getModeProperty("tableMode")) {
-            this.table = this.getModeProperty("createTable")();
-        }
     }
 
     private config = new Config();
@@ -96,6 +126,7 @@ export class Context {
         this.setConfigProperty(ConfigProperty.CalculationMode, mode);
 
         this.initTable();
+        this.initModeSpecificVariables();
     }
 
     selectNumberBase(base: NumberBase) {
@@ -124,9 +155,13 @@ export class Context {
     format(data: any): any {
         const formatted = this.formatter.format(data);
         if (formatted instanceof FormattedCluster) {
-            return formatted.complex();
+            return formatted.stringify();
         }
         return formatted;
+    }
+
+    formatToCluster(data: AlgebraicObject) {
+        return this.formatter.format(data);
     }
 
     validateRange(value: AlgebraicObject) {

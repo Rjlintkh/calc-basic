@@ -1,6 +1,7 @@
-import nerdamer = require("nerdamer");
+import nerdamer from "nerdamer";
 import { MathError } from "./errors";
 import { isRational, M } from "./math";
+import { MatrixUtils } from "./utils/matrix_utils";
 
 const cache = new Map<string, AlgebraicObject>();
 
@@ -13,11 +14,15 @@ function anyIsInteger(x: AlgebraicObject | number) {
 }
 
 function anyIsComplex(x: AlgebraicObject | number): x is AlgebraicObject {
-    return x instanceof AlgebraicObject ? x.isComplex() :false;
+    return x instanceof AlgebraicObject ? x.isComplex() : false;
 }
 
 function isMatrix(x: nerdamer.Expression) {
     return (x as any)?.symbol?.augment;
+}
+
+function anyIsMatrix(x: AlgebraicObject | number): x is AlgebraicObject {
+    return x instanceof AlgebraicObject ? x.isMatrix() : false;
 }
 
 function isVector(x: nerdamer.Expression) {
@@ -80,7 +85,9 @@ export class AlgebraicObject {
         const key = value+"";
         const cached = cache.get(key);
         if (cached != null) return cached;
+
         const newValue = new AlgebraicObject(nerdamer(key), numericType);
+        
         cache.set(key, newValue);
         return newValue;
     }
@@ -90,10 +97,10 @@ export class AlgebraicObject {
 
         const evaluated = value.evaluate();
 
-        if (evaluated.isNumber()) return Field.Real;
-        if (evaluated.isImaginary()) return Field.Complex;
         if (isVector(evaluated)) return Field.Vector;
         if (isMatrix(evaluated)) return Field.Matrix;
+        if (evaluated.isNumber()) return Field.Real;
+        if (evaluated.isImaginary()) return Field.Complex;
 
         if (containsDummyVariable(evaluated)) return Field.DummyVariable;
         
@@ -105,7 +112,9 @@ export class AlgebraicObject {
     static validateFormatAgreement(value: AlgebraicObject) {
         let format = value.format;
 
-        if (format === NumericRepresentation.Fraction && M.denominator(value).eq(1)) format = NumericRepresentation.Decimal;
+        if (value.field === Field.Real || value.field === Field.Complex) {
+            if (format === NumericRepresentation.Fraction && M.denominator(value).eq(1)) format = NumericRepresentation.Decimal;
+        }
 
         if (format === NumericRepresentation.Sexagesimal) {
             const abs = Math.abs(value.number());
@@ -118,6 +127,10 @@ export class AlgebraicObject {
         else if (format === NumericRepresentation.Integer) format = NumericRepresentation.Decimal;
         
         return format;
+    }
+    
+    sameField(other: AlgebraicObject) {
+        return (this.field === other.field) || (this.field === Field.Error);
     }
 
     value: nerdamer.Expression;
@@ -149,6 +162,10 @@ export class AlgebraicObject {
         } else {
             this.format = AlgebraicObject.validateFormatAgreement(this);
         }
+    }
+
+    clone() {
+        return new AlgebraicObject(this.value.add(0), ...this.tupleFormats);
     }
 
     isNaN() {
@@ -267,6 +284,11 @@ export class AlgebraicObject {
             } else if (power.eq(three)) {
                 return this.times(this).times(this);
             } else throw new MathError();
+        } else if (this.isMatrix()) {
+            const power = AlgebraicObject.const(rhs);
+            if (power.eq(negOne)) {
+                return M.inverse(this);
+            }
         }
         const retval = this.value.pow(rhs.valueOf());
         return new AlgebraicObject(retval, anyIsInteger(rhs) ? this.format : NumericRepresentation.Decimal);
@@ -299,6 +321,17 @@ export class AlgebraicObject {
 
     lte(rhs: AlgebraicObject | number) {
         return this.value.lte(rhs.valueOf());
+    }
+
+    ij(i: number, j: number): AlgebraicObject;
+    ij(i: number, j: number, value: AlgebraicObject | number): void;
+    ij(i: number, j: number, value?: AlgebraicObject | number) {
+        if (!this.isMatrix()) throw new MathError();
+        if (value == null) {
+            return MatrixUtils.getMatrixElement(this, i, j);
+        } else {
+            MatrixUtils.setMatrixElement(this, i, j, value);
+        }
     }
 
     abs() {
@@ -391,3 +424,4 @@ export const one = AlgebraicObject.const(1);
 export const two = AlgebraicObject.const(2);
 export const three = AlgebraicObject.const(3);
 export const pi = AlgebraicObject.const("pi");
+export const nan = AlgebraicObject.const("NaN");

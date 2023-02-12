@@ -1,6 +1,7 @@
-import nerdamer = require("nerdamer");
+import nerdamer from "nerdamer";
 import { Capabilities } from "../specifications/capabilities";
-import { ArgumentError, MathError } from "./errors";
+import { ArgumentError, DimensionError, MathError } from "./errors";
+import { MatrixUtils } from "./utils/matrix_utils";
 import { AlgebraicObject, Field, NumericRepresentation } from "./value";
 // @ts-ignore
 import("nerdamer/Calculus");
@@ -274,5 +275,109 @@ export namespace M {
         retval.field = Field.Multi;
         retval.addAdditionalValue(new AlgebraicObject(quotient));
         return retval;
+    }
+
+    export function inverse(a: AlgebraicObject) {
+        const [m, n] = MatrixUtils.getMatrixDimensions(a);
+        const retval = nerdamerCall("invert", a.value);
+        return new AlgebraicObject(retval, ...Array(m * n).fill(NumericRepresentation.Fraction));
+    }
+
+    export function determinant(a: AlgebraicObject) {
+        if (!MatrixUtils.isMatrixSquare(a)) throw new DimensionError("Matrix must be square");
+        if (MatrixUtils.getMatrixDimensions(a)[0] === 1) return a.ij(1, 1);
+        const retval = nerdamerCall("determinant", a.value);
+        return new AlgebraicObject(retval, NumericRepresentation.Fraction);
+    }
+
+    export function rowEchelonForm(a: AlgebraicObject) {
+        const clone = a.clone();
+        const [m, n] = MatrixUtils.getMatrixDimensions(clone);
+        const pivotPositionsGlobal = new Array<number>();
+
+        for (let l = 0; l < m; l++) { // ignore the lth row and column, to reduce the scope
+            const pivotsScoped = new Array<AlgebraicObject>();
+            // make all rows have pivot of 1
+            for (let i = 1 + l; i <= m; i++) { // check from lth column to last column
+                // pivot is first non zero element in row
+                let pivot = AlgebraicObject.const(0);
+                let pivotPosition = -1;
+                
+                for (let j = 1; j <= n; j++) {
+                    const element = clone.ij(i, j);
+                    if (element.eq(0)) continue;
+                    pivot = element;
+                    pivotPosition = j;
+                    break;
+                }
+                pivotsScoped.push(pivot);
+                pivotPositionsGlobal[i - 1] = pivotPosition;
+                
+                // divide row by pivot to make it 1
+                if (pivot.eq(0) || pivot.eq(1)) continue;
+                for (let j = 1; j <= n; j++) {
+                    const element = clone.ij(i, j);
+                    const quotient = element.div(pivot);
+                    clone.ij(i, j, quotient);
+                }
+            }
+
+            // check all pivots are 1
+            let isRef = true;
+            // check all pivot positions are higher than previous pivot positions
+            for (let i = 2; i <= m; i++) {
+                if (pivotPositionsGlobal[i - 2] < pivotPositionsGlobal[i - 1]) continue;
+                isRef = false;
+            }
+            if (isRef) break;
+    
+            // find the row of largest pivot
+            let largestPivotIndexScoped = l; // 0-based
+            let largestPivotScoped = pivotsScoped[l];
+            for (let i = 1 + l; i < pivotsScoped.length; i++) {
+                const pivot = pivotsScoped[i];
+                if (pivot.gt(largestPivotScoped)) {
+                    largestPivotScoped = pivot;
+                    largestPivotIndexScoped = i;
+                }
+            }
+
+            const largestPivotRowScoped = new Array<AlgebraicObject>(); // 0-based
+            const largestPivotRowNumberScoped = largestPivotIndexScoped + 1; // 0-based to 1-based
+            
+            for (let j = 1; j <= n; j++) {
+                largestPivotRowScoped.push(clone.ij(largestPivotRowNumberScoped, j));
+            }
+    
+            // all other non-zero rows minus this row
+            for (let i = 1 + l; i <= m; i++) {
+                if (i === largestPivotRowNumberScoped) continue;
+                
+                let allZeros = true;
+                for (let j = 1; j <= n; j++) {
+                    const element = clone.ij(i, j);
+                    if (!element.eq(0)) allZeros = false;
+                }
+                if (allZeros) continue;
+
+                for (let j = 1; j <= n; j++) {
+                    const element = clone.ij(i, j);
+                    const largestPivotRowElement = largestPivotRowScoped[j - 1]; // 1-based to 0-based
+                    clone.ij(i, j, element.minus(largestPivotRowElement));
+                }
+            }
+    
+            // make the row with pivot 1 the lth + 1 row
+            if (largestPivotRowNumberScoped !== 1) {
+                for (let j = 1; j <= n; j++) {
+                    const originalRowElement = clone.ij(l + 1, j);
+                    clone.ij(largestPivotRowNumberScoped, j, originalRowElement);
+                    
+                    const largestPivotRowElement = largestPivotRowScoped[j - 1]; // 1-based to 0-based
+                    clone.ij(l + 1, j, largestPivotRowElement);
+                }
+            }
+        }
+        return clone;
     }
 }
