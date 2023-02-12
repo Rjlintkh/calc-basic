@@ -2,7 +2,12 @@
   "name": "calc-basic",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "exports": {
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
   "scripts": {
     "test": "jest",
     "build": "webpack"
@@ -14,6 +19,7 @@
     "@swc/jest": "^0.2.22",
     "@types/jest": "^28.1.7",
     "jest": "^28.1.3",
+    "npm-dts-webpack-plugin": "^1.3.12",
     "ts-loader": "^9.3.1",
     "typescript": "^4.7.4",
     "webpack": "^5.74.0",

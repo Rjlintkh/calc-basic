@@ -1,5 +1,6 @@
 import { Context } from "./interpretation/context";
 import { Interpreter } from "./interpretation/interpreter";
+import { ProgramNode } from "./parsing/nodes";
 import { Parser } from "./parsing/parser";
 
 export namespace CalcBasic {
@@ -7,6 +8,14 @@ export namespace CalcBasic {
 
     export function createContext() {
         return new Context();
+    }
+
+    export function createParser() {
+        return new Parser();
+    }
+
+    export function createInterpreter(program: ProgramNode, ctx: Context) {
+        return new Interpreter(program, ctx);
     }
 
     export async function runInContext(input: string, ctx: Context, setup?: (intr: Interpreter) => void) {

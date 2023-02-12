@@ -1,2 +1,6 @@
 dist
 node_modules
+demo.ts
+demo.bat
+index.ts
+*.d.ts
